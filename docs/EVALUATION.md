@@ -71,6 +71,14 @@ Spot checks, not the full benchmark (that needs Phase 4 test results).
 | Triage of real failures | Yes: 2 `bad_code`, 1 `bad_test` |
 | Fix → re-test → pass | Not yet: the 20b model's fix was rejected as invalid JSON twice (run ended cleanly as `FAILED_TESTS`); then both models' daily quotas were used up. Covered by unit tests; to repeat with `gpt-oss-120b` |
 
+### Workflow (Phase 5, 2026-11-19, live)
+
+| Run | Model | Result |
+|---|---|---|
+| Todo API: start in one process, paused at approval (the prompt crashed on a Windows quirk), `status` and `resume --yes` in new processes | `gpt-oss-120b` | `TESTS_PASSED`: 9/9 generated tests passed in E2B; 5 LLM calls, about 19,000 tokens; no step redone after resume |
+| JWT task API (hard) | `gpt-oss-120b` | `ERROR`: daily token quota used up (clean terminal state, record saved) |
+| JWT task API (hard) | `gpt-oss-20b` | `FAILED_REVIEW`: the model could not produce valid JSON for the first file batch, twice |
+
 Free-tier limits (Groq `gpt-oss-120b`): 8,000 tokens per minute and 200,000 tokens per day. A hard
 requirement uses roughly 30,000–60,000 tokens per run, so only a few such runs fit in a day.
 

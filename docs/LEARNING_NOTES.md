@@ -1,5 +1,38 @@
 # Learning Notes
 
+## Phase 5 — LangGraph workflow
+
+### Nodes, edges, state
+A node is a function from state to a partial update. Conditional edges are small functions that
+read the state and name the next node. The loops of Phases 3 and 4 became edges plus counters, and
+the diagram LangGraph draws is the real flow, not documentation that can drift.
+
+### What goes in the state
+Only data that can be saved: dicts, lists, numbers. The LLM client, the MCP connection and the
+executor are passed as runtime context on every start and resume. That split is what makes it
+possible to resume a run in a different process.
+
+### interrupt() and resume
+`interrupt(payload)` stops the run and returns the payload to the caller; the checkpointer keeps
+the state. `Command(resume=answer)` continues, and `interrupt()` returns the answer. The paused
+node runs again from its first line, so it must do nothing before `interrupt()`.
+
+### Every run ends somewhere defined
+A `guard` around each node turns exceptions into statuses, and every router sends a terminal
+status to END. Even a provider outage becomes `ERROR` with a reason, not a traceback.
+
+### Live findings
+A crashed prompt did not lose the run: the checkpoint held it, and a new process resumed it to
+`TESTS_PASSED` (9/9 tests). On Windows, input redirected from NUL claims to be a terminal and then
+gives end-of-file; the CLI now treats that as "leave the run paused".
+
+### Checkpoint questions
+1. Why are the LLM client and MCP connection not part of the graph state?
+2. Why must a node do nothing before calling `interrupt()`?
+3. After a code fix the graph goes back to `review`, but after a test-only fix straight to
+   `run_tests`. Why the difference?
+4. What does a run look like in SQLite while it waits for approval, and what does `resume` do?
+
 ## Phase 4 — Execution and the Tester agent
 
 ### Interface first, again

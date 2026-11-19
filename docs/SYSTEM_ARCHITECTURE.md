@@ -1,6 +1,7 @@
 # System Architecture
 
-> Status: designed in Phase 0, not yet implemented.
+> Status: designed in Phase 0. Agents, MCP filesystem, sandbox and the LangGraph workflow
+> are built (Phases 1–5); Git, API, database and dashboard are planned.
 
 ## Style
 
@@ -72,6 +73,50 @@ Rules:
 - Human pauses use LangGraph `interrupt()` with a SQLite checkpointer so a run can resume later.
 - Terminal states: `SUCCESS`, `FAILED_REVIEW`, `FAILED_TESTS`, `NOT_EXECUTED`, `NOT_COMMITTED`,
   `ERROR`, `CANCELLED`.
+
+### As built (Phase 5)
+
+Code: `backend/app/workflow/` (`state.py`, `nodes.py`, `graph.py`, `workspace_io.py`).
+
+```mermaid
+flowchart TD
+  S([start]) --> plan
+  plan -->|open questions| clarify[[clarify: human]]
+  plan --> develop
+  clarify -->|answers| plan
+  clarify -->|keep assumptions| develop
+  develop --> review
+  review -->|changes, rounds left| revise --> review
+  review -->|pass, no tests yet| write_tests --> approve[[approve: human]]
+  review -->|pass, tests exist| run_tests
+  approve -->|yes| run_tests
+  run_tests -->|failed, rounds left| triage
+  run_tests -->|disallowed package| fix_code
+  triage -->|bad code| fix_code
+  triage -->|bad test only| fix_tests
+  fix_code -->|also bad tests| fix_tests
+  fix_code --> review
+  fix_tests -->|code changed| review
+  fix_tests --> run_tests
+  run_tests -->|passed| E([TESTS_PASSED])
+```
+
+Every node also has an edge to the end: a terminal status (`FAILED_REVIEW`, `FAILED_TESTS`,
+`NOT_EXECUTED`, `ERROR`, `CANCELLED`) set by a node, a limit or a human answer ends the run.
+
+- **State vs dependencies.** `RunState` is plain data (plan, counters, review reports, test
+  rounds, token totals) and is checkpointed to SQLite (`CHECKPOINT_DB_PATH`) after every node.
+  Live objects (LLM client, MCP connection, executor, limits) are passed as LangGraph's runtime
+  context (`WorkflowDeps`) on every start and resume, so they are never stored.
+- **Pauses.** `clarify` and `approve` call `interrupt()`. The run stops, the checkpoint keeps
+  it, and any later process can resume it with `Command(resume=...)`. Both pauses accept
+  `cancel` (→ `CANCELLED`). Nodes that pause do nothing before `interrupt()`, because a resumed
+  node runs again from its first line.
+- **Defined endings.** A `guard` around each working node turns failures into statuses: a
+  model that cannot give a usable answer → `FAILED_REVIEW` or `FAILED_TESTS` (by stage), provider
+  outage, LLM-call limit or workspace error → `ERROR`. Routers send any terminal status to END.
+- **Run ids** are `YYYYMMDD-HHMMSS-xxxx` and are the LangGraph thread ids.
+- `SUCCESS` and `NOT_COMMITTED` are added with the Git commit step in Phase 6.
 
 ## Backend ↔ frontend
 

@@ -94,9 +94,10 @@ asked none. Default: `gpt-oss-120b`. Full results in `eval/results/`.
   otherwise `pass`. A comment in generated code telling the reviewer to approve cannot override
   an independent static finding.
 
-## Develop-and-review loop (Phase 3; becomes a LangGraph graph in Phase 5)
+## Develop-and-review loop (Phase 3; since Phase 5 the nodes `develop`, `review`, `revise`)
 
-Code: `backend/app/pipeline/develop.py`.
+Code: `backend/app/workflow/` (the Phase 3 loop was replaced by the graph; see
+[SYSTEM_ARCHITECTURE](SYSTEM_ARCHITECTURE.md)).
 
 1. Developer generates; files are written through MCP.
 2. Reviewer reviews. `pass` → `REVIEW_PASSED`.
@@ -121,9 +122,9 @@ runs plan → develop → review and saves the plan and each review report to `d
   `tests/test_a.py::test_x` and a bare module for collection errors are the same test).
 - **Fix tests:** rewrites only test files, for `bad_test` items.
 
-## Build-and-test run (Phase 4; becomes a LangGraph graph in Phase 5)
+## Build-and-test run (Phase 4; since Phase 5 the nodes `write_tests` to `fix_tests`)
 
-Code: `backend/app/pipeline/run.py`. After develop-and-review passes:
+Code: `backend/app/workflow/nodes.py`. After develop-and-review passes:
 
 1. Tester writes tests (written through MCP into `tests/` of the workspace).
 2. Human approval before execution (CLI prompt; `--yes` to skip).

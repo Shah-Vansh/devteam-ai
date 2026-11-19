@@ -7,12 +7,53 @@
 | 2 Filesystem MCP | Done (2026-11-19) |
 | 3 Developer + Reviewer | Done (2026-11-19) |
 | 4 Execution + Tester | Done (2026-11-19) |
-| 5 LangGraph | Not started |
+| 5 LangGraph | Done (2026-11-19) |
 | 6 Git MCP | Not started |
 | 7 Backend + DB | Not started |
 | 8 Frontend | Not started |
 | 9 Evaluation + hardening | Not started |
 | 10 Packaging + portfolio | Not started |
+
+## Phase 5 — LangGraph workflow
+
+Done:
+
+- `app/workflow/`: the run as a LangGraph `StateGraph` with 11 nodes (`plan`, `clarify`,
+  `develop`, `review`, `revise`, `write_tests`, `approve`, `run_tests`, `triage`, `fix_code`,
+  `fix_tests`). It replaces the Phase 3 and 4 loops (`app/pipeline/` was removed).
+- Plain-data `RunState` checkpointed to SQLite after every node (`AsyncSqliteSaver`); live
+  dependencies passed as runtime context, so another process can resume a run.
+- Human pauses with `interrupt()`: answering the Planner's open questions (answers trigger a new
+  plan) and approving test execution; both can cancel the run.
+- Code fixed after failing tests goes back through review, as in the architecture diagram;
+  test-only fixes go straight back to running tests.
+- `guard` turns every node failure into a terminal status; terminal states reachable and tested:
+  `TESTS_PASSED`, `FAILED_REVIEW`, `FAILED_TESTS`, `NOT_EXECUTED`, `ERROR`, `CANCELLED`.
+- One LLM-call limit and token totals kept in the state, so they survive pauses.
+- CLI: `build` (asks at pauses; `--yes` keeps assumptions and approves), `resume <run-id>`,
+  `status <run-id>`; answering `later` leaves a run paused.
+- 254 tests in total (31 new, loop tests moved onto the graph), no network needed; ruff clean.
+
+Live verification:
+
+| Run | Model | Result |
+|---|---|---|
+| Todo API: start in one process, paused at approval (the prompt crashed on a Windows quirk), `status` and `resume --yes` in new processes | `gpt-oss-120b` | `TESTS_PASSED`: 9/9 generated tests passed in E2B; 5 LLM calls, about 19,000 tokens; no step redone after resume |
+| JWT task API (hard) | `gpt-oss-120b` | `ERROR`: daily token quota used up (clean terminal state, record saved) |
+| JWT task API (hard) | `gpt-oss-20b` | `FAILED_REVIEW`: the model could not produce valid JSON for the first file batch, twice |
+
+Issues found and fixed:
+
+- On Windows, input redirected from NUL reports itself as a terminal and then raises EOF at the
+  prompt. EOF now leaves the run paused (regression test added).
+
+Not done (by design or carried over):
+
+- A live run of the hard JWT requirement, and a live fix → re-test cycle (quotas); repeat with
+  `gpt-oss-120b`.
+- Commit step and `SUCCESS` / `NOT_COMMITTED` (Phase 6); API and dashboard pauses (Phases 7–8).
+- A developer that cannot produce the first files is reported as `FAILED_REVIEW`; a separate
+  development status may be clearer.
 
 ## Phase 4 — Execution and the Tester agent
 

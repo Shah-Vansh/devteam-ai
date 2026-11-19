@@ -1,21 +1,15 @@
-"""Reviewer and the develop-and-review loop, with a fake LLM and a real (in-process)
-Filesystem MCP server writing to a temporary folder."""
+"""The Reviewer agent, with a fake LLM and a real (in-process) Filesystem MCP server
+writing to a temporary folder. The review loop itself is tested in test_workflow.py."""
 
 import pytest
 
 from app.agents.common import AgentOutputError
-from app.agents.developer import Developer
 from app.agents.reviewer import Reviewer
 from app.llm.fake import FakeLLMClient
-from app.mcp_clients.filesystem import FilesystemClient, ReadOnlyFilesystem
+from app.mcp_clients.filesystem import FilesystemClient
 from app.mcp_servers.filesystem.server import build_server
-from app.pipeline.develop import (
-    LLMBudgetExceeded,
-    develop_and_review,
-    new_workspace_name,
-    write_changes,
-)
 from app.schemas.code import CodeChanges
+from app.workflow.workspace_io import write_changes
 from tests.conftest import code_changes, finding, review_output
 
 pytestmark = pytest.mark.anyio
@@ -89,79 +83,6 @@ async def test_finding_for_unknown_file_is_retried_then_rejected(server, todo_pl
 # ---------- develop_and_review ----------
 
 
-class SpyReviewer(Reviewer):
-    """Records which filesystem object the Reviewer was given."""
-
-    seen: list[object]
-
-    async def review(self, *, fs, **kwargs):
-        self.seen.append(fs)
-        return await super().review(fs=fs, **kwargs)
-
-
-async def run_pipeline(server, plan, responses, **limits):
-    llm = FakeLLMClient(responses)
-    reviewer = SpyReviewer(llm)
-    reviewer.seen = []
-    async with FilesystemClient(server) as fs:
-        result = await develop_and_review(
-            plan, workspace=WS, developer=Developer(llm), reviewer=reviewer, fs=fs, **limits
-        )
-    return result, reviewer, llm
-
-
-async def test_passes_after_one_revision(server, root, todo_plan, todo_files):
-    fixed_main = todo_files["app/main.py"].replace('"Todo API"', '"Todo API v2"')
-    assert fixed_main != todo_files["app/main.py"]
-    responses = [
-        code_changes(todo_files),  # generate
-        review_output(finding(message="create returns 200")),  # review 1: high
-        code_changes({"app/main.py": fixed_main}),  # revise
-        review_output(),  # review 2: clean
-    ]
-    result, reviewer, llm = await run_pipeline(server, todo_plan, responses)
-
-    assert result.status == "REVIEW_PASSED"
-    assert [r.verdict for r in result.reports] == ["changes_needed", "pass"]
-    assert result.review_rounds == 1
-    assert result.llm_calls == 4
-    assert result.files == sorted(todo_files)
-    assert (root / WS / "app" / "main.py").read_text(encoding="utf-8") == fixed_main
-    assert all(isinstance(fs, ReadOnlyFilesystem) for fs in reviewer.seen)
-    assert "create returns 200" in llm.requests[2].user  # findings reached the Developer
-
-
-async def test_stops_after_max_review_rounds(server, todo_plan, todo_files):
-    always_bad = review_output(finding(message="still wrong"))
-    responses = [code_changes(todo_files), always_bad]
-    for i in range(2):
-        main = todo_files["app/main.py"] + f"\n# attempt {i}\n"
-        responses += [code_changes({"app/main.py": main}), always_bad]
-
-    result, _, llm = await run_pipeline(server, todo_plan, responses, max_review_rounds=2)
-
-    assert result.status == "FAILED_REVIEW"
-    assert len(result.reports) == 3  # first review + one after each of 2 revisions
-    assert result.review_rounds == 2
-    assert result.llm_calls == 6
-    assert llm.responses == []
-
-
-async def test_llm_call_budget_is_enforced(server, todo_plan, todo_files):
-    responses = [code_changes(todo_files), review_output(finding()), code_changes(todo_files)]
-    with pytest.raises(LLMBudgetExceeded):
-        await run_pipeline(server, todo_plan, responses, max_llm_calls=1)
-
-
-def test_workspace_names_are_unique_and_valid():
-    from app.workspace.paths import validate_workspace_name
-
-    names = {new_workspace_name("todo-api") for _ in range(20)}
-    assert len(names) == 20
-    long = new_workspace_name("x" * 80)
-    assert validate_workspace_name(long) == long
-
-
 async def test_large_projects_are_reviewed_in_parts_with_outlines(
     server, todo_plan, todo_files, monkeypatch
 ):
@@ -210,27 +131,3 @@ async def test_finding_about_an_outlined_file_is_kept(server, todo_plan, todo_fi
         result = await Reviewer(llm).review(workspace=WS, plan=todo_plan, fs=fs.read_only())
     assert len(llm.requests) == 4  # no corrective retry
     assert [f.file for f in result.report.findings if f.source == "reviewer"] == ["app/store.py"]
-
-
-async def test_revision_that_changes_nothing_ends_as_failed_review(server, todo_plan, todo_files):
-    responses = [
-        code_changes(todo_files),
-        review_output(finding(message="disputed finding")),
-        {"files": [], "notes": "I believe the code is correct."},
-        {"files": [], "notes": "Still correct."},
-    ]
-    reports = []
-    llm = FakeLLMClient(responses)
-    async with FilesystemClient(server) as fs:
-        result = await develop_and_review(
-            todo_plan,
-            workspace=WS,
-            developer=Developer(llm),
-            reviewer=Reviewer(llm),
-            fs=fs,
-            on_report=reports.append,
-        )
-    assert result.status == "FAILED_REVIEW"
-    assert "revision 1 failed" in result.stop_reason
-    assert "returned no files" in llm.requests[3].user  # corrective retry explained why
-    assert [r.round for r in reports] == [1]

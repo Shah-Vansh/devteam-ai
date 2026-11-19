@@ -2,6 +2,31 @@
 
 Answers describe what is actually built. Planned parts are labelled as planned.
 
+## Phase 5 — LangGraph workflow
+
+**Why move from plain loops to LangGraph?**
+The loops worked, but a run could not pause for a human and continue later. With LangGraph each
+step is a node, each loop an edge with a counter, `interrupt()` pauses, and a SQLite checkpointer
+lets a different process resume the run.
+
+**How do you resume in another process if the state holds no LLM client?**
+The state holds only data: plan, counters, reports, test results, token totals. Live objects such
+as the LLM client, the MCP connection and the executor are passed as runtime context on every start
+or resume.
+
+**How do you guarantee every run ends in a defined state?**
+A guard around each node turns exceptions into statuses (`FAILED_REVIEW`, `FAILED_TESTS`,
+`ERROR`), and every router sends terminal statuses to END. Limits are enforced inside the nodes.
+
+**Show me it working.**
+In a live run the approval prompt crashed (a Windows quirk), but the run was already checkpointed.
+`status` in a new process showed it waiting for approval; `resume` ran the generated tests in the
+sandbox and all 9 passed, without redoing any earlier step.
+
+**What is the catch with `interrupt()`?**
+On resume the paused node runs again from the top, so anything before `interrupt()` must be free
+of side effects. My pause nodes only read the state before pausing.
+
 ## Phase 4 — Execution and the Tester agent
 
 **How do you run AI-generated code safely?**

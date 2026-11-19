@@ -53,6 +53,19 @@ and never execute it, so running them on the host is safe.
 JUnit XML (`pytest --junitxml`) over parsing console output: structured, per-test outcomes and
 messages. Parsed with `defusedxml` because the file is produced by untrusted code.
 
+### Workflow engine as built (Phase 5)
+
+| Need | How LangGraph covers it |
+|---|---|
+| Bounded loops | Conditional edges; counters live in the state and are checked by nodes |
+| Human pauses across processes | `interrupt()` + `AsyncSqliteSaver`; resume with `Command(resume=...)` |
+| Dependencies that cannot be stored | Runtime context (`context_schema`), passed on each start or resume |
+| Inspectable flow | `get_graph().draw_mermaid()` draws the real graph |
+
+The plain-async loops from Phases 3–4 were simpler but could not pause and resume from another
+process. One cost: LangGraph's first import takes about 20 s on this machine (bytecode compile),
+then about 3 s.
+
 ## Comparisons to be completed
 
 Orchestration: LangGraph vs LangChain agents vs CrewAI vs AutoGen vs plain Python.

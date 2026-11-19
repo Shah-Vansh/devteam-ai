@@ -4,14 +4,15 @@ Autonomous multi-agent software engineering platform. A plain-English requiremen
 
 ## Status
 
-Phase 4 of 10 complete.
+Phase 5 of 10 complete.
 
 - **Planner agent** turns a requirement into a validated project plan. On a 10-requirement benchmark it produced valid plans 10/10 times and asked clarifying questions only where requirements were ambiguous.
 - **Developer and Reviewer agents** turn a plan into files written through MCP, then review them with static analysis (Python parser, ruff, bandit) plus an LLM reviewer. High-severity findings trigger at most two revisions.
 - **Tester agent and sandbox execution** write pytest tests and run them in a fresh E2B microVM: packages installed from a pinned allow-list, internet switched off, results parsed from JUnit XML. Failures are triaged as bad code, bad test or environment and fixed in at most two rounds. Without a sandbox key, tests are reported as not executed, never as passed.
+- **LangGraph workflow** runs every step as a graph node with bounded loops, pauses for a human (answering the Planner's questions, approving test execution) with `interrupt()`, and saves a checkpoint after every step in SQLite, so a paused run can be resumed later from another process. Every run ends in a defined state.
 - **Filesystem MCP server** provides workspace-locked file tools over stdio. Path traversal, Windows device names, drive letters, UNC paths and symlink or junction escapes are refused, and agents only get a read-only view.
 
-Not built yet: LangGraph workflow with pause and resume, Git MCP server, API and dashboard. See `PROGRESS.md`.
+Not built yet: Git MCP server and commit approval, API and dashboard. See `PROGRESS.md`.
 
 ## Quick start
 
@@ -42,6 +43,13 @@ Plan, write, review and test a project (files go to `workspaces/`, run records t
 ```powershell
 cd backend
 ..\.venv\Scripts\python.exe -m app.cli build "Build a todo API with create, list and delete"
+```
+
+A run pauses to ask the Planner's questions and before running tests. Type `later` to leave it paused, then:
+
+```powershell
+..\.venv\Scripts\python.exe -m app.cli status <run-id>
+..\.venv\Scripts\python.exe -m app.cli resume <run-id>
 ```
 
 Start the Filesystem MCP server and watch it refuse attack paths:
