@@ -119,6 +119,17 @@ class WorkspaceFiles:
         files = [{"path": rel, "size_bytes": (ws / rel).stat().st_size} for rel in self._walk(ws)]
         return {"files": files}
 
+    def workspace_path(self, workspace: str) -> Path:
+        """The real folder of an existing workspace, after the same name and link checks
+        as every file operation. Used by the Git server."""
+        return self._workspace_dir(workspace)
+
+    def snapshot(self, workspace: str) -> dict[str, bytes]:
+        """Bytes of every visible file (the same set `list_files` returns). Hidden entries
+        such as `.git` are excluded, so the content digest covers only project files."""
+        ws = self._workspace_dir(workspace)
+        return {rel: (ws / rel).read_bytes() for rel in self._walk(ws)}
+
     # ---------- helpers ----------
 
     def _encode(self, path: str, content: str) -> bytes:

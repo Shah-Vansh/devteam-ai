@@ -8,11 +8,51 @@
 | 3 Developer + Reviewer | Done (2026-11-19) |
 | 4 Execution + Tester | Done (2026-11-19) |
 | 5 LangGraph | Done (2026-11-19) |
-| 6 Git MCP | Not started |
+| 6 Git MCP | Done (2026-11-20) |
 | 7 Backend + DB | Not started |
 | 8 Frontend | Not started |
 | 9 Evaluation + hardening | Not started |
 | 10 Packaging + portfolio | Not started |
+
+## Phase 6 — Git MCP server and commit approval
+
+Done:
+
+- `app/gitops/approval.py`: one-time commit tokens (HMAC-SHA256, per-start secret, workspace,
+  content digest, nonce, 10-minute expiry; constant-time comparison).
+- `app/gitops/repo.py`: initialise, status, commit, history. Fixed argument lists, explicit
+  repository paths (never the outer checkout), user config and hooks ignored, exact line endings,
+  validated messages, no remotes.
+- `app/mcp_servers/git/` and `app/mcp_clients/git.py`: Git MCP server over stdio; the client
+  creates the secret, passes it only to the server process and signs tokens. Shared client base
+  class in `app/mcp_clients/base.py`.
+- Workflow: `prepare_commit` (records the digest of the files shown) → `approve_commit` (pause)
+  → `commit`. New terminal states `SUCCESS` and `NOT_COMMITTED`; a commit refused by the Git
+  server (for example `CONTENT_CHANGED`) ends as `NOT_COMMITTED`.
+- CLI: commit prompt (yes, no, cancel, later, or a new first line for the message); optional
+  `COMMIT_AUTHOR_NAME` / `COMMIT_AUTHOR_EMAIL`.
+- ADR 0011; threats T13 (wrong repository) and T14 (content changed after approval) added.
+- 295 tests in total (41 new), no network needed; ruff clean.
+
+Live verification:
+
+| Check | Result |
+|---|---|
+| Commit through the real Filesystem and Git MCP servers (child processes) on the Phase 5 todo project (9/9 tests passed), which lives inside this project's own checkout | Status before init `NOT_A_REPOSITORY`; commit without token refused; commit with the approved token created `de4565cef9` (12 files, author DevTeam AI); reused token refused (`TOKEN_USED`); working tree clean; the outer repository's status unchanged |
+| Full run to a commit with an LLM (`gpt-oss-120b`, then `gpt-oss-20b`) | Not completed: both daily token quotas were used up mid-run. Both runs ended cleanly as `ERROR` with records saved |
+
+Issues found and fixed during the phase:
+
+- Design flaw caught before testing: taking the content digest inside the approval node would
+  have recomputed it on resume, after any edits made during the pause. It is now a separate
+  node, and a test edits a file during the pause and checks the commit is refused.
+- Workspaces live inside this project's checkout, so git's upward repository search would have
+  reported on the outer repository; every command now names its repository explicitly.
+
+Not done (by design or carried over):
+
+- A full LLM run to `SUCCESS` (quotas); repeat when the daily limits reset.
+- Agents get no git tools at all, although status and history would be safe; not needed yet.
 
 ## Phase 5 — LangGraph workflow
 

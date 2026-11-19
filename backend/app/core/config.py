@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     e2b_api_key: SecretStr | None = None
     sandbox_timeout_seconds: int = 120
 
+    # Commits in generated projects (local history only, never pushed)
+    commit_author_name: str = "DevTeam AI"
+    commit_author_email: str = "devteam-ai@localhost"
+
     # Workflow limits
     max_review_rounds: int = 2
     max_fix_rounds: int = 2

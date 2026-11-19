@@ -1,6 +1,6 @@
 # MCP Architecture
 
-> Status: Filesystem server built in Phase 2. Git server planned for Phase 6.
+> Status: Filesystem server built in Phase 2; Git server built in Phase 6.
 
 ## LangGraph vs MCP
 
@@ -92,6 +92,33 @@ Rules:
 - `create_commit` requires a one-time **approval token** issued by the backend when the human
   approves; the server refuses commits without a valid token (defence in depth).
 - No push or remote operations in v1.
+
+As built (Phase 6): `backend/app/gitops/` (git operations and tokens, no MCP),
+`backend/app/mcp_servers/git/` (server), `backend/app/mcp_clients/git.py` (client). Both clients
+share `backend/app/mcp_clients/base.py`.
+
+| Tool | Arguments | Data on success | Annotation |
+|---|---|---|---|
+| `initialize_repository` | workspace | created, branch | writes; idempotent |
+| `get_git_status` | workspace | branch, clean, files [{status, path}] | read-only |
+| `create_commit` | workspace, message, approval_token | commit, branch, files | writes; token required |
+| `get_commit_history` | workspace, limit (1–50) | commits [{commit, author, date, subject}] | read-only |
+
+Safety, beyond the rules above:
+
+- Every command names its repository (`--git-dir`, `--work-tree`) and sets
+  `GIT_CEILING_DIRECTORIES`. Workspaces live inside this project's own checkout; letting git
+  search upward would make `git status` on an uninitialised workspace report on the outer
+  repository. It returns `NOT_A_REPOSITORY` instead (tested with a real nested repository).
+- The user's git configuration is ignored (`GIT_CONFIG_NOSYSTEM`, `GIT_CONFIG_GLOBAL` set to
+  the null device); hooks are disabled (`core.hooksPath` = null device); no signing prompts;
+  `core.autocrlf=false` so files are committed byte for byte.
+- Commit messages: 1–2,000 characters, first line at most 100, no control characters.
+- Error codes: `NOT_A_REPOSITORY`, `INVALID_MESSAGE`, `INVALID_LIMIT`, `NOTHING_TO_COMMIT`,
+  `TOKEN_MISSING`, `TOKEN_INVALID`, `TOKEN_EXPIRED`, `TOKEN_WRONG_WORKSPACE`, `TOKEN_USED`,
+  `CONTENT_CHANGED`, `GIT_FAILED`, `GIT_NOT_FOUND`, plus the workspace codes. Token refusals are
+  logged as warnings.
+- Approval tokens: see [ADR 0011](adr/0011-commit-approval-tokens.md).
 
 ## Who may call which tool
 

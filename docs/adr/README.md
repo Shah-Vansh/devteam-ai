@@ -15,3 +15,4 @@ disadvantages, consequences, and when to reconsider. Superseded records stay, ma
 | [0008](0008-sse-for-progress.md) | Server-Sent Events for progress | Accepted |
 | [0009](0009-bounded-loops-and-triage.md) | Bounded loops and failure triage | Accepted |
 | [0010](0010-single-root-env.md) | One shared root `.env` | Accepted |
+| [0011](0011-commit-approval-tokens.md) | Commit approval tokens bound to approved content | Accepted |

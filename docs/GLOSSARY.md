@@ -32,6 +32,9 @@
 | Interrupt | `interrupt()` in a node: pause the run and wait for a human answer |
 | Thread id | LangGraph's key for one run's checkpoints (here: the run id) |
 | Runtime context | Objects passed to nodes on each invocation but never checkpointed |
+| HMAC | A signature made with a secret key; only holders of the key can create a valid one |
+| Nonce | A random value used once, so the same token cannot be replayed |
+| Content digest | A hash over every file's path and bytes; any change gives a different digest |
 | Constraints file | A pip file that pins versions of every package that may be installed |
 | JUnit XML | Standard test report format; pytest writes it with `--junitxml` |
 | Collection error | pytest could not import a test module, so its tests never ran |

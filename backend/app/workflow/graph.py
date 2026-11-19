@@ -1,13 +1,14 @@
 """The run as a LangGraph StateGraph.
 
     plan -> clarify? -> develop -> review -> (revise -> review)* -> write_tests -> approve
-    -> run_tests -> PASSED: TESTS_PASSED
+    -> run_tests -> PASSED: prepare/approve_commit -> commit -> SUCCESS (declined: NOT_COMMITTED)
                  -> FAILED: triage -> fix_code -> fix_tests? -> review -> run_tests
                                    -> fix_tests -> run_tests
 
 Routers only read the state. Every router sends a terminal status straight to END, so a
-node that fails or hits a limit ends the run in a defined state. `clarify` and `approve`
-pause with `interrupt()`; the SQLite checkpointer lets another process resume them.
+node that fails or hits a limit ends the run in a defined state. `clarify`, `approve`
+and `approve_commit` pause with `interrupt()`; the SQLite checkpointer lets another
+process resume them.
 """
 
 from dataclasses import dataclass
@@ -68,7 +69,17 @@ def after_approve(state: RunState) -> str:
 def after_run_tests(state: RunState) -> str:
     if _ended(state):
         return END
+    if state.get("tests_passed"):
+        return "prepare_commit"
     return "fix_code" if state.get("pending_code_fixes") else "triage"
+
+
+def after_prepare_commit(state: RunState) -> str:
+    return END if _ended(state) else "approve_commit"
+
+
+def after_approve_commit(state: RunState) -> str:
+    return END if _ended(state) else "commit"
 
 
 def after_triage(state: RunState) -> str:
@@ -98,10 +109,12 @@ ROUTES = {
     "revise": (after_revise, ["review", END]),
     "write_tests": (after_write_tests, ["approve", END]),
     "approve": (after_approve, ["run_tests", END]),
-    "run_tests": (after_run_tests, ["fix_code", "triage", END]),
+    "run_tests": (after_run_tests, ["prepare_commit", "fix_code", "triage", END]),
     "triage": (after_triage, ["fix_code", "fix_tests", END]),
     "fix_code": (after_fix_code, ["fix_tests", "review", END]),
     "fix_tests": (after_fix_tests, ["review", "run_tests", END]),
+    "prepare_commit": (after_prepare_commit, ["approve_commit", END]),
+    "approve_commit": (after_approve_commit, ["commit", END]),
 }
 
 
@@ -109,9 +122,11 @@ def build_graph() -> StateGraph:
     graph = StateGraph(RunState, context_schema=WorkflowDeps)
     for name in ROUTES:
         graph.add_node(name, getattr(nodes, name))
+    graph.add_node("commit", nodes.commit)
     graph.add_edge(START, "plan")
     for name, (router, targets) in ROUTES.items():
         graph.add_conditional_edges(name, router, targets)
+    graph.add_edge("commit", END)
     return graph
 
 

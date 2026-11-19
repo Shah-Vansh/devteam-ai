@@ -68,8 +68,36 @@ async def test_clarification_can_be_postponed_or_cancelled(terminal):
     assert await cli.ask_human(pause) == {"action": "cancel"}
 
 
+COMMIT_PAUSE = {
+    "kind": "commit",
+    "workspace": "todo-api-1a2b3c",
+    "files": ["app/main.py", "tests/test_a.py"],
+    "message": "Add todo-api\n\nA todo API.\n",
+}
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("typed", "reply"),
+    [
+        ("y", {"approved": True}),
+        ("", {"approved": False}),
+        ("cancel", {"action": "cancel"}),
+        ("later", None),
+        ("First version", {"approved": True, "message": "First version\n\nA todo API.\n"}),
+    ],
+)
+async def test_commit_prompt(terminal, typed, reply):
+    terminal.append(typed)
+    assert await cli.ask_human(COMMIT_PAUSE) == reply
+
+
 def test_auto_replies_keep_assumptions_and_approve():
-    assert cli.AUTO_REPLIES == {"clarify": {"answers": []}, "execute": {"approved": True}}
+    assert cli.AUTO_REPLIES == {
+        "clarify": {"answers": []},
+        "execute": {"approved": True},
+        "commit": {"approved": True},
+    }
 
 
 def test_run_ids_sort_by_time_and_are_unique():

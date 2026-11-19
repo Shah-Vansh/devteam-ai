@@ -1,5 +1,32 @@
 # Learning Notes
 
+## Phase 6 — Git MCP server and commit approval
+
+### Approval as a credential
+An approval is turned into a token the Git server can check on its own: signed with a secret only
+the backend and that server know (HMAC), for one workspace, one exact set of file contents (a
+digest), once (a nonce), soon (an expiry). Each part closes a gap: forgery, reuse, wrong project,
+late edits, stale approvals.
+
+### Constant-time comparison
+`hmac.compare_digest` takes the same time whether the first or the last character differs, so the
+signature cannot be guessed one character at a time by measuring response times.
+
+### Pauses and side effects, again
+A paused node runs again from the top on resume. Anything that must reflect "what the human
+saw" has to be stored in the state by an earlier node. This was a real design flaw caught before
+it shipped, and a test now edits a file during the pause.
+
+### Git is a program with its own ideas
+It searches upward for a repository, reads your global config, runs hooks, may convert line
+endings and may ask for a signing passphrase. Each of these was switched off or made explicit.
+
+### Checkpoint questions
+1. What does each part of the token (signature, workspace, digest, nonce, expiry) protect against?
+2. Why is the digest taken in `prepare_commit` and not in `approve_commit`?
+3. What would `git status` report in an uninitialised workspace without `--git-dir`, and why?
+4. Why does restarting the Git server invalidate every outstanding token?
+
 ## Phase 5 — LangGraph workflow
 
 ### Nodes, edges, state

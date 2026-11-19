@@ -16,10 +16,12 @@ from app.agents.reviewer import Reviewer
 from app.agents.tester import Tester
 from app.execution.base import CodeExecutor
 from app.mcp_clients.filesystem import FilesystemClient
+from app.mcp_clients.git import GitClient
 
 RunStatus = Literal[
     "RUNNING",
-    "TESTS_PASSED",
+    "SUCCESS",
+    "NOT_COMMITTED",
     "FAILED_REVIEW",
     "FAILED_TESTS",
     "NOT_EXECUTED",
@@ -27,7 +29,15 @@ RunStatus = Literal[
     "CANCELLED",
 ]
 TERMINAL = frozenset(
-    {"TESTS_PASSED", "FAILED_REVIEW", "FAILED_TESTS", "NOT_EXECUTED", "ERROR", "CANCELLED"}
+    {
+        "SUCCESS",
+        "NOT_COMMITTED",
+        "FAILED_REVIEW",
+        "FAILED_TESTS",
+        "NOT_EXECUTED",
+        "ERROR",
+        "CANCELLED",
+    }
 )
 
 
@@ -51,6 +61,11 @@ class RunState(TypedDict, total=False):
     pending_code_fixes: list[dict[str, Any]]  # Finding dicts for the Developer
     pending_test_fixes: list[dict[str, Any]]  # TriageItem dicts for the Tester
     code_changed_in_fix: bool
+    tests_passed: bool
+    approved_digest: str  # fingerprint of the files the human approved for commit
+    commit_files: list[str]
+    commit_message: str
+    commit: dict[str, Any]  # {"commit", "branch", "files"} after SUCCESS
     # cost
     llm_calls: int
     input_tokens: int
@@ -67,10 +82,12 @@ class WorkflowDeps:
     tester: Tester
     executor: CodeExecutor
     fs: FilesystemClient
+    git: GitClient
     max_review_rounds: int = 2
     max_fix_rounds: int = 2
     max_llm_calls: int = 40
     test_timeout_seconds: int = 120
     ask_clarifications: bool = True
     auto_approve_execution: bool = False
+    auto_approve_commit: bool = False
     progress: Callable[[str], None] = field(default=lambda _msg: None)

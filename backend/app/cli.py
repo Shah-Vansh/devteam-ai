@@ -33,9 +33,11 @@ from app.core.config import REPO_ROOT, Settings, get_settings
 from app.core.logging import configure_logging
 from app.execution.base import ExecutionResult
 from app.execution.factory import build_executor
+from app.gitops.repo import CommitAuthor
 from app.llm.base import LLMError
 from app.llm.factory import build_llm_client
 from app.mcp_clients.filesystem import FilesystemClient, FilesystemToolError
+from app.mcp_clients.git import GitClient
 from app.schemas.plan import ProjectPlan
 from app.schemas.review import ReviewReport
 from app.workflow.graph import Step, advance, build_graph, current
@@ -126,9 +128,11 @@ async def open_workflow(settings: Settings, model: str | None, args: argparse.Na
     and fresh live dependencies (LLM client, MCP connection, executor)."""
     llm = build_llm_client(settings, model=model)
     settings.checkpoint_db_path.parent.mkdir(parents=True, exist_ok=True)
+    author = CommitAuthor(settings.commit_author_name, settings.commit_author_email)
     async with (
         AsyncSqliteSaver.from_conn_string(str(settings.checkpoint_db_path)) as saver,
         FilesystemClient.over_stdio(settings.workspaces_dir) as fs,
+        GitClient.over_stdio(settings.workspaces_dir, author) as git,
     ):
         deps = WorkflowDeps(
             planner=Planner(llm),
@@ -137,12 +141,14 @@ async def open_workflow(settings: Settings, model: str | None, args: argparse.Na
             tester=Tester(llm),
             executor=build_executor(settings),
             fs=fs,
+            git=git,
             max_review_rounds=settings.max_review_rounds,
             max_fix_rounds=settings.max_fix_rounds,
             max_llm_calls=settings.max_llm_calls_per_run,
             test_timeout_seconds=settings.sandbox_timeout_seconds,
             ask_clarifications=not args.yes,
             auto_approve_execution=args.yes,
+            auto_approve_commit=args.yes,
             progress=lambda msg: print(f"  {msg}"),
         )
         yield build_graph().compile(checkpointer=saver), deps
@@ -159,6 +165,27 @@ async def prompt(text: str) -> str | None:
         return None
 
 
+async def ask_commit(pause: dict[str, Any]) -> dict[str, Any] | None:
+    """Show what will be committed. Typing anything other than yes/no/cancel/later
+    approves with that text as the new first line of the message."""
+    message: str = pause["message"]
+    print(f"\nTests passed. Commit {len(pause['files'])} files in {pause['workspace']}?")
+    print("Proposed message:")
+    for line in message.strip().splitlines():
+        print(f"  {line}")
+    reply = await prompt("Commit? [y/N/cancel/later, or type a new first line] ")
+    if reply is None or reply.lower() == "later":
+        return None
+    if reply.lower() == "cancel":
+        return {"action": "cancel"}
+    if reply.lower() in ("y", "yes"):
+        return {"approved": True}
+    if reply.lower() in ("", "n", "no"):
+        return {"approved": False}
+    body = message.split("\n", 1)[1] if "\n" in message else ""
+    return {"approved": True, "message": f"{reply}\n{body}"}
+
+
 async def ask_human(pause: dict[str, Any]) -> dict[str, Any] | None:
     """Answer a pause at the terminal. None leaves the run paused for `resume` later."""
     if pause["kind"] == "clarify":
@@ -173,6 +200,8 @@ async def ask_human(pause: dict[str, Any]) -> dict[str, Any] | None:
                 return {"action": "cancel"}
             answers.append(reply)
         return {"answers": answers}
+    if pause["kind"] == "commit":
+        return await ask_commit(pause)
     reply = await prompt(
         f"\nRun the generated tests in the {pause['executor']} sandbox? [y/N/cancel/later] "
     )
@@ -186,7 +215,11 @@ async def ask_human(pause: dict[str, Any]) -> dict[str, Any] | None:
     return {"approved": reply in ("y", "yes")}
 
 
-AUTO_REPLIES = {"clarify": {"answers": []}, "execute": {"approved": True}}
+AUTO_REPLIES = {
+    "clarify": {"answers": []},
+    "execute": {"approved": True},
+    "commit": {"approved": True},
+}
 
 
 async def drive(app, run_id: str, deps: WorkflowDeps, step: Step, auto: bool) -> Step:
@@ -222,6 +255,7 @@ def save_records(run_id: str, step: Step) -> None:
         "fix_rounds": state.get("fix_rounds", 0),
         "reviews": len(state.get("reports", [])),
         "test_runs": len(state.get("test_rounds", [])),
+        "commit": (state.get("commit") or {}).get("commit"),
         "llm_calls": state.get("llm_calls", 0),
         "input_tokens": state.get("input_tokens", 0),
         "output_tokens": state.get("output_tokens", 0),
@@ -258,6 +292,11 @@ def print_summary(run_id: str, step: Step, settings: Settings) -> int:
             print(f"  FAILED {case.name}  {first_line[:120]}")
     else:
         print("Tests: not run")
+    if state.get("commit"):
+        commit = state["commit"]
+        print(
+            f"Commit: {commit['commit'][:10]} on {commit['branch']} ({len(commit['files'])} files)"
+        )
     if state.get("workspace"):
         print(f"\nWorkspace: {settings.workspaces_dir / state['workspace']}")
     print(f"Run record: {run_dir(run_id)}")
@@ -265,7 +304,7 @@ def print_summary(run_id: str, step: Step, settings: Settings) -> int:
         f"LLM calls: {state.get('llm_calls', 0)}, tokens in {state.get('input_tokens', 0)}, "
         f"out {state.get('output_tokens', 0)}"
     )
-    return {"TESTS_PASSED": 0, "NOT_EXECUTED": 4}.get(state.get("status"), 3)
+    return {"SUCCESS": 0, "NOT_EXECUTED": 4, "NOT_COMMITTED": 6}.get(state.get("status"), 3)
 
 
 async def _build(args: argparse.Namespace, settings: Settings) -> int:

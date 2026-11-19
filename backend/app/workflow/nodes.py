@@ -21,6 +21,7 @@ from app.execution.base import ExecutionResult, ExecutionSpec
 from app.execution.packages import allowed_names_text, select_packages
 from app.llm.base import LLMRequestError, LLMResponseError
 from app.mcp_clients.filesystem import FilesystemToolError, McpCallError
+from app.mcp_clients.git import GitToolError, files_digest
 from app.schemas.plan import Clarification, ProjectPlan
 from app.schemas.review import Finding, ReviewReport
 from app.schemas.testing import TriageItem
@@ -274,7 +275,7 @@ async def run_tests(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str
     )
     update: dict[str, Any] = {"test_rounds": rounds, "pending_code_fixes": []}
     if result.status == "PASSED":
-        update["status"] = "TESTS_PASSED"
+        update["tests_passed"] = True  # next: commit approval
     elif result.status == "NOT_EXECUTED":
         update |= {"status": "NOT_EXECUTED", "stop_reason": result.detail}
     elif result.status == "ERROR":
@@ -355,3 +356,75 @@ async def fix_tests(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str
     update = spend(state, deps, call)
     await write_changes(deps.fs, state["workspace"], call.data)
     return update | {"pending_test_fixes": []}
+
+
+# ---------- commit ----------
+
+
+def commit_message(state: RunState) -> str:
+    plan = plan_of(state)
+    tests = ExecutionResult.model_validate(state["test_rounds"][-1]["result"])
+    summary = plan.summary.split(". ")[0].rstrip(".")
+    lines = [
+        f"Add {plan.project_name}"[:100],
+        "",
+        f"{summary}.",
+        "",
+        f"Review: passed after {len(state.get('reports', []))} review(s).",
+        f"Tests: {tests.passed} passed ({tests.executor}).",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+@guard("test")
+async def prepare_commit(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str, Any]:
+    """Fix what the human will be asked to approve: the files' fingerprint and the message.
+
+    This must be its own node. A paused node runs again from the top when the run resumes,
+    so a fingerprint taken inside `approve_commit` would be recomputed *after* the pause and
+    silently cover edits made while the human was deciding. Stored here, in the checkpoint,
+    it stays the fingerprint of what was shown."""
+    files = await read_all(runtime.context.fs, state["workspace"])
+    return {
+        "approved_digest": files_digest(files),
+        "commit_files": sorted(files),
+        "commit_message": commit_message(state),
+    }
+
+
+async def approve_commit(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str, Any]:
+    """Human pause before anything is committed. Resume with {"approved": true|false}
+    (optionally "message") or {"action": "cancel"}. Only reads the state before pausing."""
+    if runtime.context.auto_approve_commit:
+        return {}
+    reply = interrupt(
+        {
+            "kind": "commit",
+            "workspace": state["workspace"],
+            "files": state["commit_files"],
+            "message": state["commit_message"],
+        }
+    )
+    if reply.get("action") == "cancel":
+        return {"status": "CANCELLED", "stop_reason": "cancelled before commit"}
+    if not reply.get("approved"):
+        return {"status": "NOT_COMMITTED", "stop_reason": "commit was not approved"}
+    if reply.get("message"):
+        return {"commit_message": reply["message"]}
+    return {}
+
+
+@guard("test")
+async def commit(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str, Any]:
+    deps = runtime.context
+    workspace = state["workspace"]
+    try:
+        await deps.git.initialize_repository(workspace)
+        token = deps.git.issue_commit_token(workspace, state["approved_digest"])
+        result = await deps.git.create_commit(workspace, state["commit_message"], token)
+    except GitToolError as exc:
+        # The Git server refused (for example CONTENT_CHANGED): nothing was committed.
+        deps.progress(f"commit refused: {exc.code}")
+        return {"status": "NOT_COMMITTED", "stop_reason": f"commit refused: {exc}"}
+    deps.progress(f"committed {result['commit'][:10]} on {result['branch']}")
+    return {"status": "SUCCESS", "commit": result}

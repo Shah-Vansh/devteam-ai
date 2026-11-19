@@ -2,6 +2,30 @@
 
 Answers describe what is actually built. Planned parts are labelled as planned.
 
+## Phase 6 — Git MCP server and commit approval
+
+**How do you make sure nothing is committed without human approval?**
+The workflow only calls the commit tool after the approval pause, but the Git server does not
+trust that. It requires a one-time token signed with a secret that only the backend and that
+server process share. The token names the workspace and a digest of exactly the files the human
+was shown, has a nonce and a 10-minute expiry. Forged, reused, expired, wrong-workspace or
+changed-content commits are refused, and each case has a test.
+
+**Why bind the token to the content?**
+Runs can wait at the approval for hours. If someone or something edits a file in between, the
+approval no longer describes what would be committed. The server recomputes the digest from disk
+and refuses with `CONTENT_CHANGED`.
+
+**What surprised you?**
+Two things. Taking the digest in the approval node itself would be wrong, because LangGraph runs a
+paused node again on resume, after any edits. And the generated workspaces sit inside my project's
+own git checkout, so a plain `git status` in a new workspace would have reported on my project. Every
+git command now names its repository explicitly, and git's upward search is cut off.
+
+**How do you run git safely from Python?**
+Fixed argument lists without a shell, the message as a single validated argument, user and system
+config ignored, hooks disabled, explicit repository paths, no remotes, a timeout.
+
 ## Phase 5 — LangGraph workflow
 
 **Why move from plain loops to LangGraph?**

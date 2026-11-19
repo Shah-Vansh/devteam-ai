@@ -15,34 +15,25 @@ Two permission levels:
 
 import sys
 from pathlib import Path
-from types import TracebackType
 from typing import Any, Self
 
-from mcp import Client
 from mcp.client.stdio import StdioServerParameters
-from mcp.server.mcpserver import MCPServer
 from mcp.types import Tool
 
-BACKEND_DIR = Path(__file__).resolve().parents[2]
+from app.mcp_clients.base import (  # noqa: F401 - re-exported for existing imports
+    BACKEND_DIR,
+    McpCallError,
+    McpToolClient,
+    ToolError,
+    ToolNotAllowedError,
+)
+
 ALL_TOOLS = frozenset({"create_file", "read_file", "list_files", "update_file"})
 READ_ONLY_TOOLS = frozenset({"read_file", "list_files"})
 
 
-class FilesystemToolError(Exception):
-    """The server refused the operation (`ok: false`), e.g. PATH_ESCAPE."""
-
-    def __init__(self, code: str, message: str) -> None:
-        super().__init__(f"{code}: {message}")
-        self.code = code
-        self.message = message
-
-
-class McpCallError(Exception):
-    """The call itself failed: bad arguments, unknown tool, or a broken connection."""
-
-
-class ToolNotAllowedError(Exception):
-    """The caller tried a tool outside its permission set. Checked before any I/O."""
+class FilesystemToolError(ToolError):
+    """The Filesystem server refused the operation, e.g. PATH_ESCAPE."""
 
 
 def stdio_parameters(
@@ -63,62 +54,13 @@ def stdio_parameters(
     )
 
 
-class FilesystemClient:
-    def __init__(
-        self, server: StdioServerParameters | MCPServer, *, timeout_seconds: float = 30.0
-    ) -> None:
-        self._client = Client(server, read_timeout_seconds=timeout_seconds)
-        self._allowed = ALL_TOOLS
+class FilesystemClient(McpToolClient):
+    tools = ALL_TOOLS
+    error_class = FilesystemToolError
 
     @classmethod
     def over_stdio(cls, workspaces_dir: Path, **limits: int | None) -> Self:
         return cls(stdio_parameters(workspaces_dir, **limits))
-
-    async def __aenter__(self) -> Self:
-        await self._client.__aenter__()
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        tb: TracebackType | None,
-    ) -> None:
-        try:
-            await self._client.__aexit__(exc_type, exc, tb)
-        except BaseExceptionGroup as group:
-            # The SDK's task group wraps an error raised inside `async with` in an
-            # ExceptionGroup. Re-raise the original so callers can catch it by type.
-            if exc is not None and _contains(group, exc):
-                raise exc from None
-            raise
-
-    # ---------- discovery ----------
-
-    async def list_tools(self) -> list[Tool]:
-        """Tools the server offers that this client may call, with their JSON schemas."""
-        result = await self._client.list_tools()
-        return [tool for tool in result.tools if tool.name in self._allowed]
-
-    # ---------- calls ----------
-
-    async def call(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        if name not in self._allowed:
-            raise ToolNotAllowedError(f"tool {name!r} is not allowed for this caller")
-        try:
-            result = await self._client.call_tool(name, arguments)
-        except Exception as exc:
-            raise McpCallError(f"{name} failed: {exc}") from exc
-        if result.is_error or not isinstance(result.structured_content, dict):
-            text = " ".join(getattr(part, "text", "") for part in result.content)
-            raise McpCallError(f"{name} failed: {text.strip() or 'no structured result'}")
-
-        payload = result.structured_content
-        if not payload.get("ok"):
-            raise FilesystemToolError(
-                str(payload.get("error_code", "UNKNOWN")), str(payload.get("message", ""))
-            )
-        return payload["data"]
 
     async def create_file(self, workspace: str, path: str, content: str) -> dict[str, Any]:
         return await self.call(
@@ -140,13 +82,6 @@ class FilesystemClient:
 
     def read_only(self) -> "ReadOnlyFilesystem":
         return ReadOnlyFilesystem(self)
-
-
-def _contains(group: BaseExceptionGroup, target: BaseException) -> bool:
-    return any(
-        item is target or (isinstance(item, BaseExceptionGroup) and _contains(item, target))
-        for item in group.exceptions
-    )
 
 
 class ReadOnlyFilesystem:

@@ -98,17 +98,19 @@ flowchart TD
   fix_code --> review
   fix_tests -->|code changed| review
   fix_tests --> run_tests
-  run_tests -->|passed| E([TESTS_PASSED])
+  run_tests -->|passed| prepare_commit --> approve_commit[[approve_commit: human]]
+  approve_commit -->|yes| commit --> E([SUCCESS])
+  approve_commit -->|no| N([NOT_COMMITTED])
 ```
 
-Every node also has an edge to the end: a terminal status (`FAILED_REVIEW`, `FAILED_TESTS`,
-`NOT_EXECUTED`, `ERROR`, `CANCELLED`) set by a node, a limit or a human answer ends the run.
+Every node also has an edge to the end: a terminal status (`NOT_COMMITTED`, `FAILED_REVIEW`,
+`FAILED_TESTS`, `NOT_EXECUTED`, `ERROR`, `CANCELLED`) set by a node, a limit or a human answer ends the run.
 
 - **State vs dependencies.** `RunState` is plain data (plan, counters, review reports, test
   rounds, token totals) and is checkpointed to SQLite (`CHECKPOINT_DB_PATH`) after every node.
   Live objects (LLM client, MCP connection, executor, limits) are passed as LangGraph's runtime
   context (`WorkflowDeps`) on every start and resume, so they are never stored.
-- **Pauses.** `clarify` and `approve` call `interrupt()`. The run stops, the checkpoint keeps
+- **Pauses.** `clarify`, `approve` and `approve_commit` call `interrupt()`. The run stops, the checkpoint keeps
   it, and any later process can resume it with `Command(resume=...)`. Both pauses accept
   `cancel` (→ `CANCELLED`). Nodes that pause do nothing before `interrupt()`, because a resumed
   node runs again from its first line.
@@ -116,7 +118,9 @@ Every node also has an edge to the end: a terminal status (`FAILED_REVIEW`, `FAI
   model that cannot give a usable answer → `FAILED_REVIEW` or `FAILED_TESTS` (by stage), provider
   outage, LLM-call limit or workspace error → `ERROR`. Routers send any terminal status to END.
 - **Run ids** are `YYYYMMDD-HHMMSS-xxxx` and are the LangGraph thread ids.
-- `SUCCESS` and `NOT_COMMITTED` are added with the Git commit step in Phase 6.
+- **Commit (Phase 6).** `prepare_commit` stores the digest of the files and the proposed
+  message in the checkpoint, `approve_commit` pauses, `commit` initialises the repository and
+  commits with a one-time token. Git refusals end the run as `NOT_COMMITTED`.
 
 ## Backend ↔ frontend
 
