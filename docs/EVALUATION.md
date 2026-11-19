@@ -37,6 +37,20 @@ Ten fixed requirements, increasing in difficulty:
 `eval/results/<date>-<model>.json` plus a summary table in this file, e.g. "7/10 benchmark
 requirements reach SUCCESS with model X". Results are reported as measured, including failures.
 
+## Results so far
+
+### Planner only (Phase 1, 2026-11-19)
+
+Measures valid structured output, not plan quality.
+
+| Model | Valid | Retries | Cases with questions | Avg output tokens |
+|---|---|---|---|---|
+| openai/gpt-oss-120b | 10/10 | 0 | 6/10 | 1,504 |
+| openai/gpt-oss-20b | 10/10 | 1 | 0/10 | 1,107 |
+
+Run with `python eval/run_planner_benchmark.py [--model <id>]`. Latency figures are not
+compared: they include waiting on free-tier rate limits.
+
 ## Uses
 
 - Choose the default model in Phase 1.

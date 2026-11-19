@@ -2,6 +2,32 @@
 
 Answers describe what is actually built. Planned parts are labelled as planned.
 
+## Phase 1 — LLM integration and the Planner
+
+**How do you get reliable structured output from an LLM?**
+Strict JSON-schema mode generated from a Pydantic model, then Pydantic validation with extra
+rules the schema cannot express, and one retry on failure. On a 10-requirement benchmark the
+Planner produced valid plans 10/10 times with `gpt-oss-120b`.
+
+**What happens when the model returns invalid output?**
+The client samples again once. If it still fails, it raises `LLMResponseError` and the caller
+decides (later: the workflow ends the run in a clear failure state). Network and rate-limit
+errors are retried separately by the SDK with backoff.
+
+**What bug did the benchmark catch that unit tests did not?**
+Groq validates the schema on its side and returns HTTP 400 when the model's JSON does not
+match. My client treated every 400 as fatal, so one hard requirement failed on both models.
+I now recognise that specific error as "invalid output" and retry it.
+
+**How do you keep agents provider-independent?**
+Agents depend on an `LLMClient` protocol. A factory builds the real client from settings; tests
+inject a fake. Changing provider is configuration, not code.
+
+**How do you defend against prompt injection in the requirement?**
+The requirement is wrapped in tags and the system prompt says to treat it as data. More
+importantly, the Planner can only return a plan; it cannot write files or run anything, and
+every path it proposes is validated.
+
 ## Phase 0 — Architecture and decisions
 
 **What is DevTeam AI in one sentence?**

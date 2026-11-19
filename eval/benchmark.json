@@ -1,0 +1,12 @@
+[
+  {"id": "b01", "difficulty": "easy", "requirement": "Build a health-check API with GET /health returning status, app version and current server time."},
+  {"id": "b02", "difficulty": "easy", "requirement": "Build a REST API for a todo list with create, list, update and delete."},
+  {"id": "b03", "difficulty": "easy", "requirement": "Build a notes API with create, list, get, update and delete, storing notes in SQLite."},
+  {"id": "b04", "difficulty": "medium", "requirement": "Build a URL shortener API that creates short codes for URLs, redirects short codes to the original URL, and counts clicks per link."},
+  {"id": "b05", "difficulty": "medium", "requirement": "Build an inventory API to add, update and remove products with name, SKU, quantity and price, validate inputs, and list products whose quantity is below a given threshold."},
+  {"id": "b06", "difficulty": "medium", "requirement": "Build a bookmarks API where each bookmark has a URL, title and tags, with endpoints to add, delete and list bookmarks filtered by tag."},
+  {"id": "b07", "difficulty": "hard", "requirement": "Build a task management API with user registration, login, and task create/update/delete and status management. Users must only see their own tasks."},
+  {"id": "b08", "difficulty": "hard", "requirement": "Build a library loans API: manage books and members, lend a book with a due date, return it, prevent lending a book that is already out, and list overdue loans."},
+  {"id": "b09", "difficulty": "hard", "requirement": "Build an expense tracker API with categories, expenses with amount and date, and an endpoint returning monthly totals per category."},
+  {"id": "b10", "difficulty": "hard", "requirement": "Build an event booking API: create events with a capacity, book and cancel seats, and reject bookings when an event is full."}
+]

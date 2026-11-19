@@ -1,0 +1,143 @@
+{
+  "summary": {
+    "model": "openai/gpt-oss-120b",
+    "date": "2026-11-19",
+    "valid": "10/10",
+    "retries_needed": 0,
+    "avg_seconds": 10.2,
+    "avg_output_tokens": 1504,
+    "cases_with_questions": 6
+  },
+  "cases": [
+    {
+      "id": "b01",
+      "difficulty": "easy",
+      "valid": true,
+      "attempts": 1,
+      "files": 3,
+      "tasks": 2,
+      "open_questions": 0,
+      "complexity": "small",
+      "input_tokens": 1057,
+      "output_tokens": 1055,
+      "seconds": 4.8
+    },
+    {
+      "id": "b02",
+      "difficulty": "easy",
+      "valid": true,
+      "attempts": 1,
+      "files": 5,
+      "tasks": 4,
+      "open_questions": 0,
+      "complexity": "small",
+      "input_tokens": 1055,
+      "output_tokens": 1390,
+      "seconds": 3.2
+    },
+    {
+      "id": "b03",
+      "difficulty": "easy",
+      "valid": true,
+      "attempts": 1,
+      "files": 7,
+      "tasks": 6,
+      "open_questions": 0,
+      "complexity": "medium",
+      "input_tokens": 1058,
+      "output_tokens": 1315,
+      "seconds": 3.2
+    },
+    {
+      "id": "b04",
+      "difficulty": "medium",
+      "valid": true,
+      "attempts": 1,
+      "files": 5,
+      "tasks": 5,
+      "open_questions": 3,
+      "complexity": "small",
+      "input_tokens": 1065,
+      "output_tokens": 1702,
+      "seconds": 4.0
+    },
+    {
+      "id": "b05",
+      "difficulty": "medium",
+      "valid": true,
+      "attempts": 1,
+      "files": 6,
+      "tasks": 6,
+      "open_questions": 0,
+      "complexity": "small",
+      "input_tokens": 1072,
+      "output_tokens": 1254,
+      "seconds": 14.3
+    },
+    {
+      "id": "b06",
+      "difficulty": "medium",
+      "valid": true,
+      "attempts": 1,
+      "files": 5,
+      "tasks": 5,
+      "open_questions": 3,
+      "complexity": "small",
+      "input_tokens": 1066,
+      "output_tokens": 1278,
+      "seconds": 7.2
+    },
+    {
+      "id": "b07",
+      "difficulty": "hard",
+      "valid": true,
+      "attempts": 1,
+      "files": 9,
+      "tasks": 8,
+      "open_questions": 3,
+      "complexity": "medium",
+      "input_tokens": 1066,
+      "output_tokens": 1826,
+      "seconds": 15.4
+    },
+    {
+      "id": "b08",
+      "difficulty": "hard",
+      "valid": true,
+      "attempts": 1,
+      "files": 7,
+      "tasks": 7,
+      "open_questions": 3,
+      "complexity": "medium",
+      "input_tokens": 1074,
+      "output_tokens": 1567,
+      "seconds": 12.8
+    },
+    {
+      "id": "b09",
+      "difficulty": "hard",
+      "valid": true,
+      "attempts": 1,
+      "files": 8,
+      "tasks": 7,
+      "open_questions": 3,
+      "complexity": "medium",
+      "input_tokens": 1061,
+      "output_tokens": 1873,
+      "seconds": 17.4
+    },
+    {
+      "id": "b10",
+      "difficulty": "hard",
+      "valid": true,
+      "attempts": 1,
+      "files": 5,
+      "tasks": 5,
+      "open_questions": 3,
+      "complexity": "small",
+      "input_tokens": 1064,
+      "output_tokens": 1784,
+      "seconds": 19.9
+    }
+  ]
+}

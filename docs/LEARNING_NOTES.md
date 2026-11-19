@@ -1,5 +1,44 @@
 # Learning Notes
 
+## Phase 1 — Foundations and the Planner agent
+
+### Settings from one `.env`
+`pydantic-settings` turns environment variables into a typed object. `Settings` points at the
+root `.env` using `Path(__file__).resolve().parents[3]`, so it works no matter which folder a
+command is run from. Validators turn empty strings into `None` and make relative paths absolute.
+`SecretStr` hides keys in `repr()` and logs; `.get_secret_value()` is needed to use them.
+
+### Interface first: `LLMClient`
+Agents depend on a `Protocol` (a description of methods), not on a vendor SDK. Two classes
+satisfy it: the real `OpenAICompatibleClient` and `FakeLLMClient` for tests. This is
+dependency inversion: high-level code (agents) does not import low-level details (HTTP).
+
+### Two kinds of failure, two kinds of retry
+- Transport (timeout, 429, 5xx): the OpenAI SDK retries with backoff.
+- Output (JSON that breaks the schema): our client samples again once. Groq reports this as
+  HTTP 400 `json_validate_failed`, which looks like a client error but means "bad output" —
+  found by the benchmark, not by unit tests.
+
+### Schema vs validators
+The JSON schema (field names and types) goes to the model. Rules like "paths must stay inside
+the project" or "tasks may only reference planned files" are Pydantic validators that run
+after parsing. Both are needed: the schema shapes generation, the validators protect the system.
+
+### Prompt wording changes behaviour
+"Only ask if it would change the design... leave empty if none" produced zero questions on all
+ten requirements. Naming concrete kinds of ambiguity (authentication, data ownership,
+persistence, edge cases) and capping at three gave questions on exactly the ambiguous cases.
+
+### Tests without the network
+A stub object imitating `client.chat.completions.parse` lets tests script outcomes (success,
+invalid output, provider rejection) and assert retry counts — fast, free and deterministic.
+
+### Checkpoint questions
+1. Why does the Planner check the requirement length before calling the model?
+2. Where does a 429 rate-limit error get retried, and where does a schema failure get retried?
+3. Why is `project_name` normalised instead of rejected?
+4. What would you lose if agents called the OpenAI SDK directly?
+
 ## Phase 0 — Planning and architecture
 
 ### Orchestration vs tool protocol

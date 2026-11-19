@@ -43,7 +43,24 @@ Findings:
   to `gpt-oss-120b`; consider `gpt-oss-20b` for cheap steps such as triage. Final choice is made
   with the benchmark ([EVALUATION](EVALUATION.md), [ADR 0007](adr/0007-provider-agnostic-llm-client.md)).
 
-## Prompting approach (planned)
+## Planner (built in Phase 1)
+
+- Code: `backend/app/agents/planner.py`, prompt `backend/app/agents/prompts/planner_system.md`,
+  schema `backend/app/schemas/plan.py`.
+- Input: requirement (1–4,000 characters) and optional clarification answers, wrapped in
+  `<requirement>` / `<clarifications>` tags.
+- Output: `ProjectPlan` — `project_name` (normalised to a slug), `summary`, `features`, `files`
+  (application files only, at most 20, safe relative paths with allowed extensions), `tasks`
+  (unique ids, only referencing planned files), `dependencies`, `assumptions`,
+  `open_questions` (at most a few, only design-changing), `complexity`.
+- Validation happens twice: the provider enforces the JSON schema, then Pydantic validators
+  enforce rules a schema cannot express. A failure is retried once.
+
+Benchmark (10 requirements, Groq, 2026-11-19): `gpt-oss-120b` 10/10 valid, asked questions on
+6/10 (none on the easy, fully specified cases); `gpt-oss-20b` 10/10 valid after the retry fix,
+asked none. Default: `gpt-oss-120b`. Full results in `eval/results/`.
+
+## Prompting approach
 
 - System prompt per role, stored as versioned files in `backend/app/agents/prompts/`.
 - User content (the requirement, generated code) is passed as clearly delimited data, never

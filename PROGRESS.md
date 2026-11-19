@@ -3,7 +3,7 @@
 | Phase | Status |
 |---|---|
 | 0 Planning + spikes | Done (2026-11-19) |
-| 1 Foundations + Planner | Not started |
+| 1 Foundations + Planner | Done (2026-11-19) |
 | 2 Filesystem MCP | Not started |
 | 3 Developer + Reviewer | Not started |
 | 4 Execution + Tester | Not started |
@@ -13,6 +13,44 @@
 | 8 Frontend | Not started |
 | 9 Evaluation + hardening | Not started |
 | 10 Packaging + portfolio | Not started |
+
+## Phase 1 — Foundations and Planner agent
+
+Done:
+
+- `backend/` package (`devteam-backend`) installed in editable mode into the root `.venv`.
+- `app/core/config.py`: typed settings from the root `.env`; empty values become "not set";
+  relative paths resolve from the repo root; secrets are `SecretStr`.
+- `app/core/logging.py`: one JSON object per log line; known secrets are redacted.
+- `app/llm/`: `LLMClient` interface, OpenAI-compatible client (Groq), fake client for tests,
+  factory that fails fast on missing configuration. Transport errors are retried by the SDK;
+  invalid structured output (including Groq's server-side schema rejections) is retried once.
+- `app/schemas/plan.py`: `ProjectPlan` with path-safety and consistency validators.
+- `app/agents/planner.py` and `prompts/planner_system.md`: Planner agent; requirement passed as
+  tagged data; input length checked before any LLM call.
+- `python -m app.cli plan "<requirement>"` prints a plan.
+- 38 unit tests, no network needed; ruff clean.
+- `eval/benchmark.json` (10 requirements) and `eval/run_planner_benchmark.py`.
+
+Benchmark results (2026-11-19, Groq):
+
+| Model | Valid plans | Retries needed | Asked questions | Avg output tokens |
+|---|---|---|---|---|
+| openai/gpt-oss-120b | 10/10 | 0 | 6/10 (only medium and hard cases) | 1,504 |
+| openai/gpt-oss-20b | 8/10 before the retry fix, 10/10 after | 1 | 0/10 | 1,107 |
+
+Decision: `openai/gpt-oss-120b` stays the default for the Planner. It surfaced clarifying
+questions exactly where requirements were ambiguous; the 20b model never asked any.
+
+Issues found and fixed during the phase:
+
+- Groq rejects schema-breaking output with HTTP 400 `json_validate_failed`; the client first
+  treated this as a hard error (b08 failed on both models). It is now retried like invalid JSON.
+- The first prompt discouraged questions so strongly that no model asked any; reworded to allow
+  up to three genuinely design-changing questions.
+
+Not done (by design): Developer, Reviewer, Tester agents; database logging of LLM calls
+(Phase 7; calls are logged as JSON lines for now).
 
 ## Phase 0 — Planning and architecture
 

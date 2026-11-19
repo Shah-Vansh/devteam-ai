@@ -4,12 +4,39 @@ Autonomous multi-agent software engineering platform. A plain-English requiremen
 
 ## Status
 
-Phase 0 (research, planning and architecture) complete. No application code yet; Phase 1 builds the foundations and the Planner agent. See `PROGRESS.md`.
+Phase 1 of 10 complete: configuration, structured logging, a provider-agnostic LLM client and the **Planner agent**, which turns a requirement into a validated project plan. On a 10-requirement benchmark it produced valid plans 10/10 times and asked clarifying questions only where requirements were ambiguous. See `PROGRESS.md`.
 
-Phase 0 verified two key assumptions with throwaway experiments:
+Built so far: Planner agent and command-line tool. Not built yet: Developer, Reviewer and Tester agents, MCP servers, sandbox execution, workflow, API and dashboard.
 
-- Generated tests can run in a remote E2B microVM with internet switched off before the code runs.
-- Groq-hosted models return schema-valid project plans with strict structured output.
+## Quick start
+
+Requires Python 3.12+ (developed on 3.14).
+
+```powershell
+py -3.14 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e "backend[dev]"
+Copy-Item .env.example .env   # then fill in LLM_PROVIDER, LLM_API_KEY, LLM_MODEL
+```
+
+Run the tests (no network needed):
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe -m pytest
+```
+
+Plan a project:
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe -m app.cli plan "Build a todo API with create, list and delete"
+```
+
+Run the Planner benchmark:
+
+```powershell
+.\.venv\Scripts\python.exe eval\run_planner_benchmark.py
+```
 
 ## Planned stack
 

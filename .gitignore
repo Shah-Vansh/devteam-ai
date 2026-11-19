@@ -8,6 +8,8 @@ venv/
 .mypy_cache/
 .coverage
 htmlcov/
+*.egg-info/
+build/
 
 # Environment and secrets
 .env

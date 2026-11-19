@@ -1,0 +1,21 @@
+{
+  "project_name": "Todo API",
+  "summary": "A small REST API to create, list, update and delete todo items, stored in memory.",
+  "features": ["Create a todo", "List todos", "Update a todo", "Delete a todo"],
+  "files": [
+    {"path": "app/main.py", "purpose": "FastAPI application and routes"},
+    {"path": "app/schemas.py", "purpose": "Pydantic request and response models"},
+    {"path": "app/store.py", "purpose": "In-memory todo storage"},
+    {"path": "requirements.txt", "purpose": "Python dependencies"}
+  ],
+  "tasks": [
+    {"id": 1, "title": "Models", "description": "Define TodoCreate, TodoUpdate and Todo models.", "files": ["app/schemas.py"]},
+    {"id": 2, "title": "Storage", "description": "Dictionary-backed store with CRUD functions.", "files": ["app/store.py"]},
+    {"id": 3, "title": "Routes", "description": "CRUD endpoints under /todos.", "files": ["app/main.py"]},
+    {"id": 4, "title": "Dependencies", "description": "List fastapi and uvicorn.", "files": ["requirements.txt"]}
+  ],
+  "dependencies": ["fastapi", "uvicorn"],
+  "assumptions": ["Data is kept in memory and lost on restart"],
+  "open_questions": [],
+  "complexity": "small"
+}
