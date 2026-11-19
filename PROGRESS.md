@@ -4,7 +4,7 @@
 |---|---|
 | 0 Planning + spikes | Done (2026-11-19) |
 | 1 Foundations + Planner | Done (2026-11-19) |
-| 2 Filesystem MCP | Not started |
+| 2 Filesystem MCP | Done (2026-11-19) |
 | 3 Developer + Reviewer | Not started |
 | 4 Execution + Tester | Not started |
 | 5 LangGraph | Not started |
@@ -13,6 +13,34 @@
 | 8 Frontend | Not started |
 | 9 Evaluation + hardening | Not started |
 | 10 Packaging + portfolio | Not started |
+
+## Phase 2 — Filesystem MCP server
+
+Done:
+
+- `app/workspace/paths.py`: one set of rules for untrusted paths (relative, `/` only, no `..`,
+  hidden entries, drive letters, UNC paths, NTFS streams, Windows device names, forbidden or
+  control characters, unknown extensions). The Planner schema now uses the same function.
+- `app/workspace/store.py`: create, read, update and list inside `<WORKSPACES_DIR>/<workspace>`,
+  with a real-path containment check (symlinks and junctions), size and file-count limits,
+  create-only and atomic update, and error messages without host paths.
+- `app/mcp_servers/filesystem/`: MCP server (official SDK 2.x `MCPServer`) over stdio with four
+  annotated tools and one result shape `{ok, data}` / `{ok: false, error_code, message}`.
+- `app/mcp_clients/filesystem.py`: `FilesystemClient` (stdio or in-process) and a
+  `ReadOnlyFilesystem` view for agents. Only the needed variables are passed to the server.
+- `python -m app.cli fs-demo` starts the server and shows tools and refused attack paths.
+- 130 tests in total (92 new), including a real stdio child process; ruff clean.
+
+Issues found and fixed during the phase:
+
+- The installed SDK is MCP 2.x, where `FastMCP` became `MCPServer`; docs updated.
+- On Windows, opening a folder as a file raises "permission denied", not "file exists", so the
+  folder check now runs before the write.
+- `os.walk` lists a folder's files before its subfolders' files; `list_files` now sorts the
+  full list.
+
+Not done (by design): server lifecycle inside FastAPI with restart on crash (Phase 7); deleting
+files (the workflow does not need it).
 
 ## Phase 1 — Foundations and Planner agent
 

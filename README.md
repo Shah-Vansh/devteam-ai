@@ -4,9 +4,12 @@ Autonomous multi-agent software engineering platform. A plain-English requiremen
 
 ## Status
 
-Phase 1 of 10 complete: configuration, structured logging, a provider-agnostic LLM client and the **Planner agent**, which turns a requirement into a validated project plan. On a 10-requirement benchmark it produced valid plans 10/10 times and asked clarifying questions only where requirements were ambiguous. See `PROGRESS.md`.
+Phase 2 of 10 complete.
 
-Built so far: Planner agent and command-line tool. Not built yet: Developer, Reviewer and Tester agents, MCP servers, sandbox execution, workflow, API and dashboard.
+- **Planner agent** turns a requirement into a validated project plan. On a 10-requirement benchmark it produced valid plans 10/10 times and asked clarifying questions only where requirements were ambiguous.
+- **Filesystem MCP server** provides workspace-locked file tools over stdio. Path traversal, Windows device names, drive letters, UNC paths and symlink or junction escapes are refused, and agents only get a read-only view.
+
+Not built yet: Developer, Reviewer and Tester agents, Git MCP server, sandbox execution, workflow, API and dashboard. See `PROGRESS.md`.
 
 ## Quick start
 
@@ -30,6 +33,13 @@ Plan a project:
 ```powershell
 cd backend
 ..\.venv\Scripts\python.exe -m app.cli plan "Build a todo API with create, list and delete"
+```
+
+Start the Filesystem MCP server and watch it refuse attack paths:
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe -m app.cli fs-demo
 ```
 
 Run the Planner benchmark:

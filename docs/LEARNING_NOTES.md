@@ -1,5 +1,40 @@
 # Learning Notes
 
+## Phase 2 — Filesystem MCP server
+
+### MCP in one picture
+A server declares tools (name, description, JSON schema built from type hints). A client starts
+the server, lists the tools, then calls them. Over stdio, the client writes JSON-RPC messages to
+the server's stdin and reads replies from its stdout. That is why the server must never print to
+stdout: logs go to stderr.
+
+### Separate the rules from the protocol
+`app/workspace/` knows nothing about MCP; the server is a thin wrapper. The rules can be tested
+directly, and the Planner schema reuses the same path function.
+
+### String checks are not enough
+`link/secret.txt` is a perfectly valid string. If `link` is a symlink or junction to another
+folder, only resolving the real path reveals the escape. That is why there are two layers.
+
+### Errors as data
+Rule violations return `{ok: false, error_code, message}` instead of crashing, so the workflow
+(and later an agent) can react to `FILE_EXISTS` or `PATH_ESCAPE`. Messages leave out absolute
+host paths, because they may be shown to an LLM.
+
+### Least privilege in code
+`ReadOnlyFilesystem` has no write methods at all. A permission that does not exist cannot be
+talked into existing by a prompt.
+
+### Atomic writes
+Write to a temporary file in the same folder, then `os.replace` it over the target. Readers see
+either the old file or the new one, never half of one.
+
+### Checkpoint questions
+1. Why must an MCP server that uses stdio never print to stdout?
+2. `link/secret.txt` passes every string rule. Which check stops it, and how?
+3. Why does `create_file` open with mode `"xb"` instead of checking `exists()` first?
+4. What is the difference between a tool returning `ok: false` and an MCP protocol error?
+
 ## Phase 1 — Foundations and the Planner agent
 
 ### Settings from one `.env`

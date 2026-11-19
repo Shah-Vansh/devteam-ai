@@ -14,20 +14,18 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-ALLOWED_EXTENSIONS = {".py", ".txt", ".md", ".toml", ".ini", ".cfg", ".json", ".yaml", ".yml"}
+from app.workspace.paths import validate_relative_path
+
 MAX_FILES = 20
 
 
 def check_relative_path(path: str) -> str:
-    """A generated path must stay inside the project workspace."""
-    if not path or "\\" in path or ":" in path or path.startswith("/"):
-        raise ValueError(f"path must be relative and use '/': {path!r}")
-    parts = PurePosixPath(path).parts
-    if ".." in parts or "." in parts:
-        raise ValueError(f"path must not contain '.' or '..' segments: {path!r}")
-    if PurePosixPath(path).suffix not in ALLOWED_EXTENSIONS:
-        raise ValueError(f"file type not allowed: {path!r}")
-    return path
+    """A generated path must stay inside the project workspace.
+
+    Same rules as the Filesystem MCP server, so a valid plan can always be written.
+    `PathRejected` is a `ValueError`, which Pydantic reports as a validation error.
+    """
+    return validate_relative_path(path)
 
 
 class PlannedFile(BaseModel):

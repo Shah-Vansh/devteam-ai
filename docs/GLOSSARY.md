@@ -9,7 +9,8 @@
 | Constraints file | A pip file pinning exact versions of all packages, including indirect ones |
 | E2B | Cloud service that runs code in short-lived microVMs |
 | Egress | Outbound network traffic from a machine or sandbox |
-| FastMCP | High-level server API in the official MCP Python SDK |
+| MCPServer | High-level server API in the official MCP Python SDK (named FastMCP before 2.0) |
+| Junction | Windows folder link that works without admin rights; treated like a symlink |
 | Interrupt | LangGraph mechanism that pauses a run until a human provides input |
 | JUnit XML | Standard test-result file format that pytest can write |
 | MCP | Model Context Protocol: a standard for exposing tools to clients with discovery and JSON schemas |

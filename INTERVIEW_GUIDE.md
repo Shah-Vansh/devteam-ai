@@ -2,6 +2,35 @@
 
 Answers describe what is actually built. Planned parts are labelled as planned.
 
+## Phase 2 — Filesystem MCP server
+
+**What is MCP and why build your own server?**
+A protocol for exposing tools: a client lists a server's tools with their JSON schemas and calls
+them. I built my own server so I control exactly what file access exists: four tools, all locked
+to one workspace folder, with my own limits and error codes.
+
+**How do you stop path traversal?**
+Two layers. First, string rules before touching the disk: relative paths with `/` only, no `..`,
+no drive letters, UNC paths, NTFS streams, hidden files or Windows device names like `CON`.
+Second, the real path after following symlinks and junctions must be inside the workspace. The
+first catches tricks in the text; the second catches links that look harmless as text.
+
+**Why are Windows device names a security issue?**
+`nul.py` or `con.txt` open a device, not a file, whatever the extension. Windows also strips
+trailing dots and spaces, so `main.py.` is a different string but the same file.
+
+**What stops a prompt-injected agent from writing files?**
+Code, not the prompt. Agents receive a read-only view that has no write methods and rejects
+write tool names before anything is sent. Only workflow code holds the full client.
+
+**Why stdio and not HTTP?**
+The server is a child process of the backend: no open port, no authentication to design, and it
+receives only the environment variables it needs, so API keys never reach it.
+
+**What did testing on Windows find?**
+Opening a folder as a file reports "permission denied" on Windows rather than "already exists",
+and directory walking returned files in an unsorted order. Both were caught by tests.
+
 ## Phase 1 — LLM integration and the Planner
 
 **How do you get reliable structured output from an LLM?**
