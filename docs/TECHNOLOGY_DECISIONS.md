@@ -23,6 +23,22 @@
 | Packaging | `venv` + PowerShell scripts | Native on Windows | Linux deployment (containers) | — |
 | CI | GitHub Actions | Free, Linux runners | — | — |
 
+## Comparisons completed
+
+### Static analysis (Phase 3)
+
+| Option | Strengths | Weaknesses | Decision |
+|---|---|---|---|
+| `ast` (standard library) | Exact syntax errors, no install, also used for outlines | Syntax only | Used |
+| `ruff` | Very fast, pyflakes and bugbear rules, JSON output | Not a security tool | Used (E9, F, B) |
+| `bandit` | Python security rules (shell, eval, secrets, binding) | Some noise (hard-coded "password" strings) | Used |
+| pylint | Deep checks | Slow and noisy for generated code | Not used |
+| mypy | Type errors | Generated code is often partly typed; many false alarms | Not used |
+| Semgrep | Custom cross-language rules | Heavier setup; rules to maintain | Later, if needed |
+
+All three run on a temporary copy of the files with fixed arguments and no shell. They parse code
+and never execute it, so running them on the host is safe.
+
 ## Comparisons to be completed
 
 Orchestration: LangGraph vs LangChain agents vs CrewAI vs AutoGen vs plain Python.

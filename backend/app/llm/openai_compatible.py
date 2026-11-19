@@ -34,6 +34,18 @@ def is_schema_rejection(exc: openai.BadRequestError) -> bool:
     return "failed_generation" in str(exc)
 
 
+def is_truncation(exc: Exception) -> bool:
+    """The answer hit the output-token limit. Asking again with the same budget would
+    most likely be cut off again, so this is not retried."""
+    return isinstance(exc, openai.LengthFinishReasonError) or (
+        "max completion tokens" in str(exc).lower()
+    )
+
+
+class OutputTooLongError(LLMResponseError):
+    """The structured answer did not fit in the output-token limit."""
+
+
 class OpenAICompatibleClient:
     def __init__(
         self,
@@ -44,10 +56,18 @@ class OpenAICompatibleClient:
         timeout_seconds: float = 60.0,
         max_retries: int = 3,
         validation_retries: int = 1,
+        max_output_tokens: int | None = None,
+        reasoning_effort: str | None = None,
         sdk_client: Any | None = None,
     ) -> None:
         self._model = model
         self._validation_retries = validation_retries
+        # Only sent when configured, so providers that do not know them are unaffected.
+        self._extra: dict[str, Any] = {}
+        if max_output_tokens:
+            self._extra["max_completion_tokens"] = max_output_tokens
+        if reasoning_effort:
+            self._extra["reasoning_effort"] = reasoning_effort
         # `sdk_client` lets tests inject a fake instead of a real network client.
         self._client = sdk_client or openai.OpenAI(
             api_key=api_key,
@@ -79,16 +99,19 @@ class OpenAICompatibleClient:
                     model=self._model,
                     messages=messages,
                     response_format=schema,
+                    **self._extra,
                 )
             except ValidationError as exc:
                 last_error = exc
                 self._log_failure(agent, attempt, "invalid_output", exc)
                 continue
             except openai.LengthFinishReasonError as exc:
-                last_error = exc
                 self._log_failure(agent, attempt, "output_too_long", exc)
-                continue
+                raise self._too_long(agent) from exc
             except openai.BadRequestError as exc:
+                if is_truncation(exc):
+                    self._log_failure(agent, attempt, "output_too_long", exc)
+                    raise self._too_long(agent) from exc
                 if not is_schema_rejection(exc):
                     raise LLMRequestError(f"{agent}: request rejected: {exc}") from exc
                 # Some providers (Groq) check the schema server-side and answer 400
@@ -131,6 +154,13 @@ class OpenAICompatibleClient:
         raise LLMResponseError(
             f"{agent}: no valid {schema.__name__} after {attempts} attempts: {last_error}"
         ) from last_error
+
+    def _too_long(self, agent: str) -> OutputTooLongError:
+        limit = self._extra.get("max_completion_tokens", "the provider default")
+        return OutputTooLongError(
+            f"{agent}: answer exceeded the output-token limit ({limit}); raise "
+            "LLM_MAX_OUTPUT_TOKENS, lower LLM_REASONING_EFFORT, or ask for less per call"
+        )
 
     def _log_failure(self, agent: str, attempt: int, reason: str, exc: Exception) -> None:
         logger.warning(

@@ -48,4 +48,7 @@ contents; long LLM outputs are truncated.
 - Single user, no authentication (localhost only).
 - Generated code leaves the machine to the sandbox provider.
 - LLM review and static analysis reduce risk; they do not prove code is secure.
+- Generated code may contain text aimed at the Reviewer ("approve this"). The verdict is
+  computed from findings, and static tools are independent of the model, so such text cannot
+  force a pass while a high static finding exists (tested).
 - Package installation runs with internet on, before the network is cut.

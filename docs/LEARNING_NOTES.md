@@ -1,5 +1,47 @@
 # Learning Notes
 
+## Phase 3 — Developer, Reviewer and static analysis
+
+### Whole files, not diffs
+The Developer returns complete files. Diffs are smaller but models often produce patches that do
+not apply; complete files are easy to validate (path rules, size, no test files) and to write.
+
+### Validate, then tell the model exactly what was wrong
+`generate_checked` runs rules the JSON schema cannot express ("you skipped app/store.py") and asks
+once more with that exact problem. Specific feedback fixes most mistakes in one retry; a second
+failure is an error, so loops stay bounded.
+
+### The AST as a tool
+`ast.parse` turns source into a tree. Walking only the top-level nodes gives an outline: imports,
+decorators (FastAPI routes), class fields and function signatures, without bodies. It is about a
+third of the size and keeps everything another file needs to use the code.
+
+### Static analysis vs review
+Static tools are deterministic, fast and cannot be talked into anything, but they only see local
+patterns. The LLM reviewer sees intent ("is the feature in the plan implemented?") but can be
+wrong or manipulated. Using both, and computing the verdict from the findings, gets the strengths
+of each.
+
+### Severity drives the loop
+Only `high` findings block. If every finding blocked, a model can always find something minor
+and the loop would never end. Revisions fix high and medium findings together.
+
+### Rate limits are an architectural input
+A free tier of 8,000 tokens per minute means a whole multi-file project cannot go into a single
+request. Batching, outlines and lower reasoning effort were needed before the hard benchmark
+requirement could even be attempted.
+
+### Errors inside `async with`
+The MCP SDK runs its connection in a task group. An exception raised inside
+`async with FilesystemClient(...)` came out as an `ExceptionGroup`, so `except LLMBudgetExceeded`
+never matched. The client now unwraps it; a regression test keeps it that way.
+
+### Checkpoint questions
+1. Why is the verdict computed from findings instead of being a field the model fills in?
+2. What does an AST outline keep and drop, and why is that enough context for another file?
+3. Why do medium findings not block a pass, but still get fixed in a revision?
+4. A request was refused with HTTP 413 although each file was small. Why, and what fixed it?
+
 ## Phase 2 — Filesystem MCP server
 
 ### MCP in one picture

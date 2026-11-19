@@ -8,7 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.llm.base import LLMRequestError, LLMResponseError
-from app.llm.openai_compatible import OpenAICompatibleClient
+from app.llm.openai_compatible import OpenAICompatibleClient, OutputTooLongError
 from app.schemas.plan import ProjectPlan
 
 
@@ -109,3 +109,35 @@ def test_provider_errors_are_not_retried_here():
     with pytest.raises(LLMRequestError):
         call(make_client(sdk))
     assert sdk.calls == 1
+
+
+def test_truncated_answer_is_not_retried():
+    truncated = bad_request(
+        "json_validate_failed",
+        "max completion tokens reached before generating a valid document; failed_generation",
+    )
+    sdk = StubSDK([truncated, truncated])
+    client = OpenAICompatibleClient(api_key="k", model="m", sdk_client=sdk)
+    with pytest.raises(OutputTooLongError, match="LLM_MAX_OUTPUT_TOKENS"):
+        client.generate_structured(system="s", user="u", schema=ProjectPlan, agent="t")
+    assert sdk.calls == 1
+
+
+def test_token_limit_and_reasoning_effort_are_sent_only_when_set(todo_plan_data):
+    plan = ProjectPlan.model_validate(todo_plan_data)
+    seen = []
+
+    class Recording(StubSDK):
+        def _parse(self, **kwargs):
+            seen.append(kwargs)
+            return super()._parse(**kwargs)
+
+    for extra in ({}, {"max_output_tokens": 4000, "reasoning_effort": "low"}):
+        sdk = Recording([ok_response(plan)])
+        sdk.chat.completions.parse = sdk._parse
+        client = OpenAICompatibleClient(api_key="k", model="m", sdk_client=sdk, **extra)
+        client.generate_structured(system="s", user="u", schema=ProjectPlan, agent="t")
+
+    assert "max_completion_tokens" not in seen[0] and "reasoning_effort" not in seen[0]
+    assert seen[1]["max_completion_tokens"] == 4000
+    assert seen[1]["reasoning_effort"] == "low"

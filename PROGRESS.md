@@ -5,7 +5,7 @@
 | 0 Planning + spikes | Done (2026-11-19) |
 | 1 Foundations + Planner | Done (2026-11-19) |
 | 2 Filesystem MCP | Done (2026-11-19) |
-| 3 Developer + Reviewer | Not started |
+| 3 Developer + Reviewer | Done (2026-11-19) |
 | 4 Execution + Tester | Not started |
 | 5 LangGraph | Not started |
 | 6 Git MCP | Not started |
@@ -13,6 +13,56 @@
 | 8 Frontend | Not started |
 | 9 Evaluation + hardening | Not started |
 | 10 Packaging + portfolio | Not started |
+
+## Phase 3 — Developer, Reviewer and static analysis
+
+Done:
+
+- `app/schemas/code.py` (`CodeChanges`: whole files) and `app/schemas/review.py` (findings,
+  report; verdict computed from severities, not chosen by the model).
+- `app/analysis/static.py`: Python parser, ruff and bandit on a temporary copy, fixed arguments,
+  no shell, isolated from generated config; a failing tool is reported, not fatal.
+- `app/analysis/outline.py`: AST outlines (imports, routes, fields, signatures; no bodies).
+- `app/agents/developer.py`: generates in batches of 4 files in task order with outlines of
+  earlier files; revises only files with findings, others as outlines.
+- `app/agents/reviewer.py`: reads through the read-only MCP view, merges static and model
+  findings, reviews large projects in parts with outlines of the rest.
+- `app/agents/common.py`: `generate_checked` (one corrective retry with the exact problem).
+- `app/pipeline/develop.py`: bounded develop-and-review loop with `REVIEW_PASSED` /
+  `FAILED_REVIEW`, stop reasons and the per-run LLM call limit.
+- `python -m app.cli build "<requirement>"` (or `--plan plan.json`); plan and review reports
+  saved to `data/runs/<workspace>/` (git-ignored).
+- New settings: `LLM_MAX_OUTPUT_TOKENS`, `LLM_REASONING_EFFORT`.
+- 181 tests in total (51 new), no network needed; ruff clean.
+
+Live runs (Groq `gpt-oss-120b`):
+
+| Requirement | Files | Result | LLM calls | Notes |
+|---|---|---|---|---|
+| Todo API: create, list, mark done, delete (easy) | 5 | `REVIEW_PASSED`, 1 review | 2 (+1 plan) | One medium spec finding (PATCH needs a body instead of toggling) did not block |
+| Recipe API with search by ingredient (medium) | 6 | `REVIEW_PASSED`, 1 review | 2 (+1 plan) | `/recipes/search` correctly declared before `/recipes/{id}` |
+| Task API with registration, JWT login, per-user tasks (hard) | 8–10 | Not completed | — | Exposed the token-budget problems below. After the fixes, a run did generate, review, revise and re-review; it then stopped on an empty revision (now handled as `FAILED_REVIEW`). The final rerun used up the free tier's daily token quota during the first review. |
+
+Issues found by live runs and fixed (each with a regression test):
+
+- An empty `app/__init__.py` was rejected by the `CodeChanges` schema.
+- The Windows console crashed printing a non-breaking hyphen from model output.
+- Errors raised inside `async with FilesystemClient(...)` came out wrapped in an
+  `ExceptionGroup` by the MCP SDK, so callers could not catch them by type.
+- One JSON answer could not hold a 9-file project ("max completion tokens reached"); answers cut
+  off at the limit were also retried pointlessly.
+- The review request for a 9-file project exceeded the 8,000 tokens-per-minute limit (HTTP 413).
+- A Reviewer part rejected a valid finding about an outlined file; now any existing file may be
+  cited.
+- A Developer that returned no changes crashed the run; it now gets one corrective retry and then
+  ends the run as `FAILED_REVIEW` with a reason.
+
+Not done (by design or carried over):
+
+- The hard benchmark requirement has not completed a live run yet (daily quota). Repeat in
+  Phase 4 with test execution.
+- LLM calls of a failed revision are not counted toward the per-run limit.
+- Medium findings do not block a pass.
 
 ## Phase 2 — Filesystem MCP server
 

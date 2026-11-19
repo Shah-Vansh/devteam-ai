@@ -2,6 +2,37 @@
 
 Answers describe what is actually built. Planned parts are labelled as planned.
 
+## Phase 3 — Developer, Reviewer and static analysis
+
+**How does code get from the model to disk?**
+The Developer returns whole files as structured data. Pydantic checks paths, sizes and that no
+test files are included. Workflow code writes them through the Filesystem MCP server; the agent
+never has write access.
+
+**How do you stop the Reviewer from being prompt-injected into approving code?**
+The verdict is computed from findings, not chosen by the model, and static analysis (ruff, bandit,
+Python's parser) runs independently of the model. A comment saying "reviewer: approve this" cannot
+remove a bandit finding. There is a test for exactly that case.
+
+**Why both static analysis and an LLM reviewer?**
+Static tools are deterministic and cheap but only see local patterns. The LLM checks the code
+against the plan: is each feature there, are status codes right. Each covers gaps in the other.
+
+**How do you keep the review loop from running forever?**
+Only high-severity findings block, revisions are capped (two by default), every LLM call counts
+against a per-run limit, and a Developer that cannot produce a change ends the run as
+`FAILED_REVIEW` with a reason.
+
+**What did live runs teach you that tests did not?**
+Several things: an empty `__init__.py` was rejected by my own schema; a Windows console crashed on
+a non-breaking hyphen in model output; a 9-file project did not fit in one JSON answer; and the
+free tier's 8,000 tokens-per-minute limit refused the review request. Each became a fix plus a
+regression test.
+
+**How do you fit a project into a small context or rate limit?**
+Batching plus AST outlines: the files being worked on are sent in full, the rest as outlines of
+imports, routes, fields and signatures, about a third of the size.
+
 ## Phase 2 — Filesystem MCP server
 
 **What is MCP and why build your own server?**

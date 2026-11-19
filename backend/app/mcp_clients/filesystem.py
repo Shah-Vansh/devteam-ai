@@ -15,6 +15,7 @@ Two permission levels:
 
 import sys
 from pathlib import Path
+from types import TracebackType
 from typing import Any, Self
 
 from mcp import Client
@@ -77,8 +78,20 @@ class FilesystemClient:
         await self._client.__aenter__()
         return self
 
-    async def __aexit__(self, *exc_info: object) -> None:
-        await self._client.__aexit__(*exc_info)
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        try:
+            await self._client.__aexit__(exc_type, exc, tb)
+        except BaseExceptionGroup as group:
+            # The SDK's task group wraps an error raised inside `async with` in an
+            # ExceptionGroup. Re-raise the original so callers can catch it by type.
+            if exc is not None and _contains(group, exc):
+                raise exc from None
+            raise
 
     # ---------- discovery ----------
 
@@ -127,6 +140,13 @@ class FilesystemClient:
 
     def read_only(self) -> "ReadOnlyFilesystem":
         return ReadOnlyFilesystem(self)
+
+
+def _contains(group: BaseExceptionGroup, target: BaseException) -> bool:
+    return any(
+        item is target or (isinstance(item, BaseExceptionGroup) and _contains(item, target))
+        for item in group.exceptions
+    )
 
 
 class ReadOnlyFilesystem:

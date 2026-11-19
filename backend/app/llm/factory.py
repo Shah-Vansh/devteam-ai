@@ -28,4 +28,6 @@ def build_llm_client(settings: Settings, model: str | None = None) -> LLMClient:
         model=chosen_model,
         base_url=settings.llm_base_url or OPENAI_COMPATIBLE_PROVIDERS[provider],
         timeout_seconds=settings.llm_timeout_seconds,
+        max_output_tokens=settings.llm_max_output_tokens,
+        reasoning_effort=settings.llm_reasoning_effort,
     )

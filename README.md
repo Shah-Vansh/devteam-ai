@@ -4,12 +4,13 @@ Autonomous multi-agent software engineering platform. A plain-English requiremen
 
 ## Status
 
-Phase 2 of 10 complete.
+Phase 3 of 10 complete.
 
 - **Planner agent** turns a requirement into a validated project plan. On a 10-requirement benchmark it produced valid plans 10/10 times and asked clarifying questions only where requirements were ambiguous.
+- **Developer and Reviewer agents** turn a plan into files written through MCP, then review them with static analysis (Python parser, ruff, bandit) plus an LLM reviewer. High-severity findings trigger at most two revisions.
 - **Filesystem MCP server** provides workspace-locked file tools over stdio. Path traversal, Windows device names, drive letters, UNC paths and symlink or junction escapes are refused, and agents only get a read-only view.
 
-Not built yet: Developer, Reviewer and Tester agents, Git MCP server, sandbox execution, workflow, API and dashboard. See `PROGRESS.md`.
+Not built yet: Tester agent and sandbox test runs, Git MCP server, LangGraph workflow, API and dashboard. See `PROGRESS.md`.
 
 ## Quick start
 
@@ -33,6 +34,13 @@ Plan a project:
 ```powershell
 cd backend
 ..\.venv\Scripts\python.exe -m app.cli plan "Build a todo API with create, list and delete"
+```
+
+Plan, write and review a project (files go to `workspaces/`, run records to `data/runs/`):
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe -m app.cli build "Build a todo API with create, list and delete"
 ```
 
 Start the Filesystem MCP server and watch it refuse attack paths:
@@ -76,3 +84,5 @@ Run the Planner benchmark:
 ## Configuration
 
 All configuration lives in one `.env` file at the repository root, shared by backend and frontend. Copy `.env.example` to `.env` and fill in the keys.
+
+On Groq's free tier, set `LLM_REASONING_EFFORT=low`: it leaves more of the 8,000 tokens-per-minute budget for the generated code.

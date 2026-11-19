@@ -24,5 +24,9 @@
 | StateGraph | LangGraph's main class: a graph of nodes sharing a typed state |
 | stdio transport | MCP client and server communicating through a child process's standard input and output |
 | Static analysis | Checking code by reading it, without running it |
+| AST | Abstract syntax tree: the parsed structure of source code |
+| Outline | A file reduced to imports, signatures, routes and fields (built from the AST) |
+| TPM | Tokens per minute: a provider's rate limit on input plus output tokens |
+| Verdict | Review result, `pass` or `changes_needed`, computed from finding severities |
 | Structured output | LLM output constrained to and validated against a schema |
 | Triage | Deciding whether a failing test is caused by the code, the test or the environment |

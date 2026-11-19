@@ -27,6 +27,7 @@ logger = logging.getLogger("app.mcp_servers.filesystem")
 
 SERVER_NAME = "devteam-filesystem"
 SERVER_VERSION = "0.1.0"
+ROUTINE_CODES = frozenset({"WORKSPACE_NOT_FOUND", "FILE_EXISTS", "FILE_NOT_FOUND"})
 
 Workspace = Annotated[str, Field(description="Workspace name, e.g. todo-api-3f2a")]
 RelPath = Annotated[str, Field(description="Relative file path with '/', e.g. app/main.py")]
@@ -41,7 +42,10 @@ def _run(tool: str, action: Callable[[], dict]) -> dict[str, Any]:
     try:
         data = action()
     except WorkspaceError as exc:
-        logger.warning("tool_rejected tool=%s code=%s", tool, exc.code)
+        # Normal outcomes (file already exists, new workspace) at INFO; refusals that
+        # may mean an attack or a misbehaving model at WARNING.
+        level = logging.INFO if exc.code in ROUTINE_CODES else logging.WARNING
+        logger.log(level, "tool_rejected tool=%s code=%s", tool, exc.code)
         return {"ok": False, "error_code": exc.code, "message": exc.message}
     except Exception:
         logger.exception("tool_failed tool=%s", tool)

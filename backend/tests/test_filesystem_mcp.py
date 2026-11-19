@@ -164,3 +164,23 @@ def test_server_refuses_to_start_without_workspaces_root():
     )
     assert proc.returncode == 2
     assert "DEVTEAM_WORKSPACES_DIR" in proc.stderr
+
+
+class BoomError(Exception):
+    pass
+
+
+async def test_errors_inside_the_block_keep_their_type(server):
+    # Without unwrapping, the SDK's task group turns this into an ExceptionGroup and
+    # `except BoomError` in callers would never match.
+    with pytest.raises(BoomError):
+        async with FilesystemClient(server) as fs:
+            await fs.list_tools()
+            raise BoomError("raised by caller code")
+
+
+async def test_errors_inside_the_block_keep_their_type_over_stdio(root):
+    with pytest.raises(BoomError):
+        async with FilesystemClient.over_stdio(root) as fs:
+            await fs.list_tools()
+            raise BoomError("raised by caller code")

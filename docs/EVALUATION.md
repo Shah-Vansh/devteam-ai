@@ -51,6 +51,19 @@ Measures valid structured output, not plan quality.
 Run with `python eval/run_planner_benchmark.py [--model <id>]`. Latency figures are not
 compared: they include waiting on free-tier rate limits.
 
+### Develop and review (Phase 3, 2026-11-19, `gpt-oss-120b`, live)
+
+Spot checks, not the full benchmark (that needs Phase 4 test results).
+
+| Requirement | Files | Result | LLM calls | Notes |
+|---|---|---|---|---|
+| Todo API: create, list, mark done, delete (easy) | 5 | `REVIEW_PASSED`, 1 review | 2 (+1 plan) | One medium spec finding (PATCH needs a body instead of toggling) did not block |
+| Recipe API with search by ingredient (medium) | 6 | `REVIEW_PASSED`, 1 review | 2 (+1 plan) | `/recipes/search` correctly declared before `/recipes/{id}` |
+| Task API with registration, JWT login, per-user tasks (hard) | 8–10 | Not completed | — | Exposed the token-budget problems below. After the fixes, a run did generate, review, revise and re-review; it then stopped on an empty revision (now handled as `FAILED_REVIEW`). The final rerun used up the free tier's daily token quota during the first review. |
+
+Free-tier limits (Groq `gpt-oss-120b`): 8,000 tokens per minute and 200,000 tokens per day. A hard
+requirement uses roughly 30,000–60,000 tokens per run, so only a few such runs fit in a day.
+
 ## Uses
 
 - Choose the default model in Phase 1.

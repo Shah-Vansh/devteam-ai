@@ -2,6 +2,9 @@
 
 python -m app.cli plan "Build a todo API with create, list and delete"
 python -m app.cli plan --model openai/gpt-oss-20b "..."
+python -m app.cli plan "..." > plan.json
+python -m app.cli build "Build a todo API with create, list and delete"
+python -m app.cli build --plan plan.json
 python -m app.cli fs-demo
 """
 
@@ -12,12 +15,18 @@ import logging
 import sys
 from pathlib import Path
 
+from app.agents.common import AgentOutputError
+from app.agents.developer import Developer
 from app.agents.planner import Planner, PlannerInputError
-from app.core.config import get_settings
+from app.agents.reviewer import Reviewer, sort_findings
+from app.core.config import REPO_ROOT, Settings, get_settings
 from app.core.logging import configure_logging
 from app.llm.base import LLMError
 from app.llm.factory import build_llm_client
 from app.mcp_clients.filesystem import FilesystemClient, FilesystemToolError
+from app.pipeline.develop import LLMBudgetExceeded, develop_and_review, new_workspace_name
+from app.schemas.plan import ProjectPlan
+from app.schemas.review import ReviewReport
 
 logger = logging.getLogger("app.cli")
 
@@ -78,7 +87,88 @@ def cmd_fs_demo(args: argparse.Namespace) -> int:
     return 0
 
 
+def _read_text_any(path: Path) -> str:
+    """PowerShell's `>` writes UTF-16; accept that as well as UTF-8."""
+    raw = path.read_bytes()
+    if raw[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return raw.decode("utf-16")
+    return raw.decode("utf-8-sig")
+
+
+async def _build(args: argparse.Namespace, settings: Settings) -> int:
+    llm = build_llm_client(settings, model=args.model)
+    if args.plan:
+        plan = ProjectPlan.model_validate_json(_read_text_any(Path(args.plan)))
+        print(f"Using saved plan {args.plan!r}")
+    else:
+        print("planner: planning")
+        plan = (await asyncio.to_thread(Planner(llm).plan, args.requirement)).plan
+    print(f"plan: {plan.project_name}, {len(plan.files)} files, {len(plan.tasks)} tasks")
+    for question in plan.open_questions:
+        print(f"  open question (continuing with assumptions): {question}")
+
+    workspace = new_workspace_name(plan.project_name)
+    # Run records (plan and every review) go to data/runs/, which git ignores. They are
+    # kept outside the workspace so they never become part of the generated project.
+    run_dir = REPO_ROOT / "data" / "runs" / workspace
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "plan.json").write_text(plan.model_dump_json(indent=2), encoding="utf-8")
+
+    def save_report(report: ReviewReport) -> None:
+        data = report.model_dump() | {"verdict": report.verdict}
+        path = run_dir / f"review-{report.round}.json"
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    print(f"Run record: {run_dir}")
+    async with FilesystemClient.over_stdio(settings.workspaces_dir) as fs:
+        result = await develop_and_review(
+            plan,
+            workspace=workspace,
+            developer=Developer(llm),
+            reviewer=Reviewer(llm),
+            fs=fs,
+            max_review_rounds=settings.max_review_rounds,
+            max_llm_calls=settings.max_llm_calls_per_run,
+            progress=lambda msg: print(f"  {msg}"),
+            on_report=save_report,
+        )
+
+    report = result.final_report
+    print(f"\nResult: {result.status} after {len(result.reports)} review(s)")
+    if result.stop_reason:
+        print(f"Reason: {result.stop_reason}")
+    print(f"Summary: {report.summary}")
+    for f in sort_findings(report.findings):
+        where = f"{f.file}:{f.line}" if f.line else f.file
+        print(f"  [{f.severity:<6}] {f.source:<8} {where}  {f.message}")
+    tokens_in = sum(u.input_tokens for u in result.usages)
+    tokens_out = sum(u.output_tokens for u in result.usages)
+    print(f"\nFiles: {', '.join(result.files)}")
+    print(f"Workspace: {settings.workspaces_dir / workspace}")
+    print(f"LLM calls: {result.llm_calls}, tokens in {tokens_in}, out {tokens_out}")
+    return 0 if result.status == "REVIEW_PASSED" else 3
+
+
+def cmd_build(args: argparse.Namespace) -> int:
+    if not args.requirement and not args.plan:
+        print("give a requirement or --plan <file>", file=sys.stderr)
+        return 2
+    settings = get_settings()
+    configure_logging(settings.log_level, settings.secret_values())
+    try:
+        return asyncio.run(_build(args, settings))
+    except (PlannerInputError, LLMError, AgentOutputError, LLMBudgetExceeded) as exc:
+        logger.error("build_failed", extra={"fields": {"error": str(exc)}})
+        return 1
+
+
 def main(argv: list[str] | None = None) -> int:
+    # Model output often contains characters such as U+2011 (non-breaking hyphen) that a
+    # Windows console code page cannot show. Replace them instead of crashing.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
+
     parser = argparse.ArgumentParser(prog="devteam")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -86,6 +176,12 @@ def main(argv: list[str] | None = None) -> int:
     plan.add_argument("requirement")
     plan.add_argument("--model", default=None, help="Override LLM_MODEL for this call")
     plan.set_defaults(handler=cmd_plan)
+
+    build = sub.add_parser("build", help="Plan, write and review a project")
+    build.add_argument("requirement", nargs="?", default="")
+    build.add_argument("--plan", default=None, help="Use a saved plan JSON instead of planning")
+    build.add_argument("--model", default=None, help="Override LLM_MODEL for this run")
+    build.set_defaults(handler=cmd_build)
 
     demo = sub.add_parser("fs-demo", help="Start the Filesystem MCP server and exercise it")
     demo.set_defaults(handler=cmd_fs_demo)

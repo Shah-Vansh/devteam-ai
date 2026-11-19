@@ -43,7 +43,9 @@ class Settings(BaseSettings):
     llm_api_key: SecretStr | None = None
     llm_model: str = ""
     llm_base_url: str | None = None
-    llm_timeout_seconds: float = 60.0
+    llm_timeout_seconds: float = 120.0
+    llm_max_output_tokens: int | None = None
+    llm_reasoning_effort: Literal["low", "medium", "high"] | None = None
 
     # Execution sandbox
     executor: Literal["e2b", "static_only"] = "static_only"
@@ -55,7 +57,14 @@ class Settings(BaseSettings):
     max_fix_rounds: int = 2
     max_llm_calls_per_run: int = 40
 
-    @field_validator("llm_api_key", "e2b_api_key", "llm_base_url", mode="before")
+    @field_validator(
+        "llm_api_key",
+        "e2b_api_key",
+        "llm_base_url",
+        "llm_max_output_tokens",
+        "llm_reasoning_effort",
+        mode="before",
+    )
     @classmethod
     def empty_to_none(cls, value: object) -> object:
         """An empty line like `LLM_BASE_URL=` in .env means "not set", not "empty string"."""

@@ -8,12 +8,13 @@ dependencies = [
     "pydantic-settings>=2.6,<3",
     "openai>=3.0,<4",
     "mcp>=2.3,<3",
+    "ruff>=0.8",
+    "bandit>=1.8,<2",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",
-    "ruff>=0.8",
 ]
 
 [build-system]
