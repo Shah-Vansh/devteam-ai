@@ -1,6 +1,6 @@
 # Execution Sandbox
 
-> Status: designed in Phase 0, verified by a Phase 0 spike, built in Phase 4.
+> Status: built in Phase 4 (`backend/app/execution/`). Verified live against E2B.
 
 ## Rule
 
@@ -38,6 +38,31 @@ sequenceDiagram
   E->>S: kill
   E-->>O: ExecutionResult
 ```
+
+## As built (Phase 4)
+
+- `base.py`: `CodeExecutor` protocol, `ExecutionSpec`, `ExecutionResult` (status, counts,
+  per-test cases with messages, `detail` for errors, output tail). `run_tests` never raises for
+  problems inside the run; it reports `ERROR` with a reason.
+- `e2b_executor.py`: the sequence above. Paths are validated before a sandbox is created; the
+  sandbox gets no environment variables; install uses `-c constraints.txt`; internet is switched
+  off before pytest; the sandbox is killed in `finally`. Exit code 5 (no tests) and collection
+  errors become a synthetic failing case, so triage always has something to read.
+- `junit.py`: parses the JUnit report with `defusedxml` and a 2 MB size limit (the report comes
+  from untrusted code). Collection errors are named `tests/test_x.py::(collection)`.
+- `static_only.py`: never runs anything; checks test files parse and returns `NOT_EXECUTED`.
+- `factory.py`: `EXECUTOR=e2b` with a key → E2B; otherwise static-only with the reason.
+- `packages.py` + `constraints.txt`: the allow-list (fastapi, uvicorn, pydantic,
+  pydantic-settings, email-validator, python-multipart, sqlalchemy, pyjwt, python-jose, passlib,
+  bcrypt, httpx; pytest and httpx always) and 40 pins for every package including transitive
+  ones. `requirements.txt` version specifiers are ignored and unknown names are refused (never
+  installed). Generated inside an E2B sandbox by `backend/scripts/lock_sandbox_packages.py`, so
+  the pins match its Python 3.11.6. `bcrypt` is held at 4.0.1 because passlib 1.7.4 fails with
+  newer versions.
+
+Live check (2026-11-19): a known app plus four tests, one wrong on purpose and one opening a
+socket to `pypi.org`, took 30 s in total. Results: 3 passed; the wrong test failed with its
+assertion message; the socket test passed because the connection was refused (internet off).
 
 ## Phase 0 spike result (Spike A)
 

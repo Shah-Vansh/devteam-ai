@@ -10,6 +10,8 @@ dependencies = [
     "mcp>=2.3,<3",
     "ruff>=0.8",
     "bandit>=1.8,<2",
+    "e2b>=2.6,<3",
+    "defusedxml>=0.7,<1",
 ]
 
 [project.optional-dependencies]
@@ -26,6 +28,7 @@ include = ["app*"]
 
 [tool.setuptools.package-data]
 "app.agents" = ["prompts/*.md"]
+"app.execution" = ["constraints.txt"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

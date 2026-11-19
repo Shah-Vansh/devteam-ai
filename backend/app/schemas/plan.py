@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from app.workspace.paths import validate_relative_path
 
 MAX_FILES = 20
+REQUIRED_FILES = ("app/main.py",)
 
 
 def check_relative_path(path: str) -> str:
@@ -67,6 +68,29 @@ class ProjectPlan(BaseModel):
             raise ValueError("project_name is empty after normalisation")
         return slug[:50]
 
+    @model_validator(mode="before")
+    @classmethod
+    def add_requirements_file(cls, data: object) -> object:
+        """requirements.txt is always needed and its content follows from `dependencies`,
+        so a plan that forgets it is repaired instead of rejected (seen live)."""
+        if isinstance(data, dict) and isinstance(data.get("files"), list):
+            paths = [
+                f.get("path") if isinstance(f, dict) else getattr(f, "path", None)
+                for f in data["files"]
+            ]
+            if "requirements.txt" not in paths:
+                data = {
+                    **data,
+                    "files": [
+                        *data["files"],
+                        {
+                            "path": "requirements.txt",
+                            "purpose": "pip packages the application needs (from dependencies)",
+                        },
+                    ],
+                }
+        return data
+
     @model_validator(mode="after")
     def check_consistency(self) -> "ProjectPlan":
         paths = [f.path for f in self.files]
@@ -78,6 +102,9 @@ class ProjectPlan(BaseModel):
             raise ValueError("file paths must be unique")
         if any(PurePosixPath(p).name.startswith("test_") for p in paths):
             raise ValueError("test files belong to the Tester agent, not the plan")
+        # The prompt asks for these; seen live, a smaller model still left one out.
+        if missing := [p for p in REQUIRED_FILES if p not in paths]:
+            raise ValueError(f"plan must include {', '.join(missing)}")
 
         ids = [t.id for t in self.tasks]
         if not ids or len(set(ids)) != len(ids):

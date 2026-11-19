@@ -1,5 +1,41 @@
 # Learning Notes
 
+## Phase 4 — Execution and the Tester agent
+
+### Interface first, again
+The run depends on `CodeExecutor`, not on E2B. The static-only executor makes "no sandbox" an
+honest `NOT_EXECUTED`; a fake sandbox in tests records the order of steps so the security
+sequence (install, internet off, pytest, kill) is asserted, not assumed.
+
+### Pin everything, where it runs
+Pinning top-level packages still lets their dependencies float. A constraints file pins all of
+them. It is generated inside the sandbox, because pins resolved on the host's Python 3.14 could
+differ from what the sandbox's Python 3.11 needs. One real conflict showed up: passlib needs
+bcrypt below 4.1.
+
+### Untrusted output
+The test report is written by generated code, so it is size-limited and parsed with defusedxml
+(no entity expansion). Test output given to models is delimited data.
+
+### Triage is a routing decision
+A failing test means the code is wrong, the test is wrong, or the environment is wrong. Sending
+each kind to the right fixer (Developer, Tester, or nobody) is what keeps fix rounds useful.
+
+### Deterministic repair beats asking again
+When the fix is certain (add the missing `requirements.txt`), code repairs the output. When it
+is not (missing entry point), the output is rejected and the model is asked again.
+
+### One error policy
+After review, any agent failure ends the run with a status and keeps the records: a model that
+cannot answer → `FAILED_TESTS`, a provider that cannot be reached → `ERROR`.
+
+### Checkpoint questions
+1. Why is the constraints file generated inside the sandbox rather than on your machine?
+2. In which order do install, internet-off and pytest happen, and why does the order matter?
+3. Why does the static-only executor return `NOT_EXECUTED` instead of running static checks and
+   calling that a pass?
+4. A test fails with `ModuleNotFoundError: fastapi`. Is that bad code, bad test or environment?
+
 ## Phase 3 — Developer, Reviewer and static analysis
 
 ### Whole files, not diffs

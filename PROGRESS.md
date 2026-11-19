@@ -6,13 +6,70 @@
 | 1 Foundations + Planner | Done (2026-11-19) |
 | 2 Filesystem MCP | Done (2026-11-19) |
 | 3 Developer + Reviewer | Done (2026-11-19) |
-| 4 Execution + Tester | Not started |
+| 4 Execution + Tester | Done (2026-11-19) |
 | 5 LangGraph | Not started |
 | 6 Git MCP | Not started |
 | 7 Backend + DB | Not started |
 | 8 Frontend | Not started |
 | 9 Evaluation + hardening | Not started |
 | 10 Packaging + portfolio | Not started |
+
+## Phase 4 — Execution and the Tester agent
+
+Done:
+
+- `app/execution/`: `CodeExecutor` interface; `E2BExecutor` (fresh microVM, no env vars, pinned
+  install, internet off, pytest with JUnit, kill in `finally`); `StaticOnlyExecutor`
+  (`NOT_EXECUTED`, never a pass); `junit.py` (defusedxml, size limit); package allow-list and a
+  40-pin `constraints.txt` generated inside E2B by `scripts/lock_sandbox_packages.py`.
+- `app/agents/tester.py`: writes tests, triages failures (`bad_code` / `bad_test` /
+  `environment`), fixes its own tests.
+- `app/pipeline/run.py`: develop-and-review, tests, approval, execution, triage and bounded fix
+  rounds; one error policy for agent steps; one LLM-call budget for the whole run.
+- Static analysis now checks that imported packages are allowed and declared in
+  `requirements.txt` (missing file included).
+- `python -m app.cli build [--yes] "<requirement>"`: asks before running tests in the sandbox,
+  saves `plan.json`, `review-N.json`, `tests-N.json` and `result.json` in `data/runs/`.
+- 237 tests in total (56 new), no network needed; ruff clean.
+
+Live verification:
+
+| What | Verified live? |
+|---|---|
+| E2B executor alone: pinned install, internet off, pytest, JUnit, kill (known app, 4 tests) | Yes: 3 passed, the deliberately wrong test failed with its message, network blocked; 30 s |
+| Plan → write → review → 2 revisions → review pass | Yes (`gpt-oss-20b`) |
+| Tester → E2B run of generated tests | Yes: e.g. 7 passed, 3 failed in 12.6 s |
+| Triage of real failures | Yes: 2 `bad_code`, 1 `bad_test` |
+| Fix → re-test → pass | Not yet: the 20b model's fix was rejected as invalid JSON twice (run ended cleanly as `FAILED_TESTS`); then both models' daily quotas were used up. Covered by unit tests; to repeat with `gpt-oss-120b` |
+
+Issues found by live runs and fixed (each with a regression test):
+
+- A model wrote `requirements.txt` as one line with literal `\n` text, so it was a single comment
+  and nothing was installed. File content with escaped newlines and no real line breaks is now
+  rejected, and the new dependency check flags undeclared imports at review time.
+- Triage blamed the "environment" for that missing package; the prompt now says a missing
+  allowed package is `bad_code` in `requirements.txt`.
+- A plan without `requirements.txt` (twice in a row from the smaller model): the plan schema now
+  adds it deterministically; a missing `app/main.py` is still rejected.
+- The Developer could not create a missing file during a revision; it can now create
+  `requirements.txt`.
+- A model re-sent earlier batches' files and the strict batch rule failed the run; re-sent
+  planned files are now ignored, files outside the plan are still refused.
+- A failed fix (invalid JSON) crashed the run and lost its records; agent failures after review
+  now end the run as `FAILED_TESTS` (or `ERROR` for provider outages) with records kept.
+- Test results were saved only after triage, so a failed triage lost them; they are saved as
+  soon as the run finishes.
+- Collection errors had unreadable names and triage spelled them differently; they are named
+  `tests/test_x.py::(collection)` and names are matched leniently.
+- pytest tried to collect `Tester`, `TestSuite`, `TestCaseResult` and `TestRound` because of
+  their names; they are marked `__test__ = False`.
+
+Not done (by design or carried over):
+
+- A complete live fix → re-test → pass cycle (quota); repeat with `gpt-oss-120b`.
+- Human approval is a CLI prompt for now; Phase 5 makes it a LangGraph `interrupt()`.
+- After a code fix the code is re-tested but not re-reviewed (the diagram goes back through
+  review; Phase 5 follows the diagram).
 
 ## Phase 3 — Developer, Reviewer and static analysis
 

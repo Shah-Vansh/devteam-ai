@@ -65,3 +65,12 @@ def test_negative_line_numbers_become_zero():
 def test_unknown_severity_is_rejected():
     with pytest.raises(ValidationError):
         ReviewOutput.model_validate({"summary": "", "findings": [finding(severity="critical")]})
+
+
+def test_escaped_newlines_instead_of_line_breaks_are_rejected():
+    escaped = r"# deps\nfastapi\nuvicorn"  # backslash-n as text, no real line break
+    with pytest.raises(ValidationError, match="literal"):
+        CodeChanges.model_validate(code_changes({"requirements.txt": escaped}))
+    # A real multi-line file that merely contains backslash-n in a string literal is fine.
+    ok = 'print("a' + "\\" + 'nb")\nx = 1\n'
+    assert CodeChanges.model_validate(code_changes({"app/main.py": ok})).files[0].content == ok

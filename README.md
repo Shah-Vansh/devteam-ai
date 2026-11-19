@@ -4,13 +4,14 @@ Autonomous multi-agent software engineering platform. A plain-English requiremen
 
 ## Status
 
-Phase 3 of 10 complete.
+Phase 4 of 10 complete.
 
 - **Planner agent** turns a requirement into a validated project plan. On a 10-requirement benchmark it produced valid plans 10/10 times and asked clarifying questions only where requirements were ambiguous.
 - **Developer and Reviewer agents** turn a plan into files written through MCP, then review them with static analysis (Python parser, ruff, bandit) plus an LLM reviewer. High-severity findings trigger at most two revisions.
+- **Tester agent and sandbox execution** write pytest tests and run them in a fresh E2B microVM: packages installed from a pinned allow-list, internet switched off, results parsed from JUnit XML. Failures are triaged as bad code, bad test or environment and fixed in at most two rounds. Without a sandbox key, tests are reported as not executed, never as passed.
 - **Filesystem MCP server** provides workspace-locked file tools over stdio. Path traversal, Windows device names, drive letters, UNC paths and symlink or junction escapes are refused, and agents only get a read-only view.
 
-Not built yet: Tester agent and sandbox test runs, Git MCP server, LangGraph workflow, API and dashboard. See `PROGRESS.md`.
+Not built yet: LangGraph workflow with pause and resume, Git MCP server, API and dashboard. See `PROGRESS.md`.
 
 ## Quick start
 
@@ -36,7 +37,7 @@ cd backend
 ..\.venv\Scripts\python.exe -m app.cli plan "Build a todo API with create, list and delete"
 ```
 
-Plan, write and review a project (files go to `workspaces/`, run records to `data/runs/`):
+Plan, write, review and test a project (files go to `workspaces/`, run records to `data/runs/`; it asks before running tests in the sandbox):
 
 ```powershell
 cd backend

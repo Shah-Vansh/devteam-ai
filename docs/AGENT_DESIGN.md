@@ -1,6 +1,6 @@
 # Agent Design
 
-> Status: Planner built in Phase 1; Developer and Reviewer built in Phase 3.
+> Status: Planner built in Phase 1; Developer and Reviewer in Phase 3; Tester and triage in Phase 4.
 
 ## Principles
 
@@ -107,6 +107,38 @@ Code: `backend/app/pipeline/develop.py`.
 Every LLM call counts against `MAX_LLM_CALLS_PER_RUN`. `python -m app.cli build "<requirement>"`
 runs plan → develop → review and saves the plan and each review report to `data/runs/<workspace>/`
 (git-ignored).
+
+## Tester (built in Phase 4)
+
+- Code: `backend/app/agents/tester.py`, prompt `prompts/tester_system.md`, schemas in
+  `backend/app/schemas/testing.py`.
+- **Write tests:** plan plus app files (full text up to a budget, outlines for the rest) →
+  `TestSuite`: files directly under `tests/` only (`test_*.py`, `conftest.py`, `__init__.py`),
+  at most 6. pytest with FastAPI `TestClient`, state reset between tests, no network.
+- **Triage:** after a failed run, each failing test is classified `bad_code` (must name an app
+  file), `bad_test` (must name a test file) or `environment`, with a reason and a fix. Every
+  failure shown must be classified; test names are matched leniently (`tests.test_a.test_x`,
+  `tests/test_a.py::test_x` and a bare module for collection errors are the same test).
+- **Fix tests:** rewrites only test files, for `bad_test` items.
+
+## Build-and-test run (Phase 4; becomes a LangGraph graph in Phase 5)
+
+Code: `backend/app/pipeline/run.py`. After develop-and-review passes:
+
+1. Tester writes tests (written through MCP into `tests/` of the workspace).
+2. Human approval before execution (CLI prompt; `--yes` to skip).
+3. Packages from `requirements.txt` are checked against the allow-list. Unknown names go back to
+   the Developer as a finding (a fix round); they are never installed.
+4. Executor runs the tests. `PASSED` → `TESTS_PASSED`; `NOT_EXECUTED` → `NOT_EXECUTED`;
+   `ERROR` (install, timeout, sandbox) → `ERROR`.
+5. `FAILED` and `fix_rounds < MAX_FIX_ROUNDS` → triage → `bad_code` to the Developer, `bad_test`
+   to the Tester (both in one round if needed); only `environment` → `FAILED_TESTS`.
+6. Limit reached → `FAILED_TESTS`.
+
+One error policy for every agent step after review: a model that cannot give a usable answer
+ends the run as `FAILED_TESTS`; a provider that cannot be reached (or a used-up quota) is
+`ERROR`. Rounds recorded so far are kept. One `LLMBudget` counts calls across all stages.
+`SUCCESS` and `NOT_COMMITTED` arrive with the Git commit in Phase 6.
 
 ## Fitting a small token budget
 

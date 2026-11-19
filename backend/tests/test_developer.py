@@ -33,7 +33,7 @@ def test_missing_planned_file_triggers_one_corrective_retry(todo_plan, todo_file
 def test_extra_file_twice_is_an_error(todo_plan, todo_files):
     extra = {**todo_files, "app/secret.py": "x = 1\n"}
     llm = FakeLLMClient([code_changes(extra), code_changes(extra)])
-    with pytest.raises(AgentOutputError, match="not requested now: app/secret.py"):
+    with pytest.raises(AgentOutputError, match="not in the plan: app/secret.py"):
         Developer(llm).generate(todo_plan)
 
 
@@ -133,3 +133,30 @@ def test_revise_batches_large_files(todo_plan, todo_files, monkeypatch):
     # The second call sees the first call's updated main.py in its outline context
     assert '<outline path="app/main.py">' in llm.requests[1].user
     assert "app/store.py" in llm.requests[1].user and "[medium]" in llm.requests[1].user
+
+
+def test_revise_can_create_a_missing_requirements_file(todo_plan, todo_files):
+    del todo_files["requirements.txt"]
+    issue = Finding(source="python", **finding(file="requirements.txt", message="missing"))
+    llm = FakeLLMClient([code_changes({"requirements.txt": "fastapi\n"})])
+    call = Developer(llm).revise(todo_plan, todo_files, [issue])
+    assert call.data.as_dict() == {"requirements.txt": "fastapi\n"}
+    assert '<file path="requirements.txt">' in llm.requests[0].user
+
+
+def test_resent_earlier_files_are_ignored_not_fatal(todo_plan_data):
+    from app.agents.developer import file_batches
+    from app.schemas.plan import ProjectPlan
+
+    todo_plan_data["files"] += [{"path": "app/extra.py", "purpose": "extra"}]
+    plan = ProjectPlan.model_validate(todo_plan_data)
+    first, second = file_batches(plan)
+    # The second answer re-sends a first-batch file with different content.
+    responses = [
+        code_changes({p: f"# {p} v1\n" for p in first}),
+        code_changes({**{p: f"# {p} v2\n" for p in second}, first[0]: "# overwritten\n"}),
+    ]
+    llm = FakeLLMClient(responses)
+    call = Developer(llm).generate(plan)
+    assert len(llm.requests) == 2  # no corrective retry
+    assert call.data.as_dict()[first[0]] == f"# {first[0]} v1\n"

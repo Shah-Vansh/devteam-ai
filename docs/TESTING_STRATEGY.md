@@ -16,7 +16,7 @@
 | Unit | Settings, schemas, path validation, routing functions, triage logic, token checks | pytest | 1–6 |
 | Agent | Each agent with recorded LLM responses; malformed output is rejected | pytest + fixtures | 1–4 |
 | MCP integration | Real MCP client ↔ server over stdio; tool discovery and calls | pytest | 2, 6 |
-| Executor | `StaticOnlyExecutor` always; `E2BExecutor` with a fake, plus an optional live test | pytest | 4 |
+| Executor | `StaticOnlyExecutor` always; `E2BExecutor` with a fake sandbox that records the order of steps (install, internet off, pytest, kill); live checks run by hand | pytest | 4 |
 | Workflow | Full graph with a fake LLM; every terminal state reachable; limits enforced; pause/resume | pytest | 5 |
 | API | Endpoints against a temporary SQLite database | pytest + FastAPI TestClient | 7 |
 | Frontend | Components and hooks | Vitest | 8 |

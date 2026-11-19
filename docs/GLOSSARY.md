@@ -27,6 +27,10 @@
 | AST | Abstract syntax tree: the parsed structure of source code |
 | Outline | A file reduced to imports, signatures, routes and fields (built from the AST) |
 | TPM | Tokens per minute: a provider's rate limit on input plus output tokens |
+| TPD | Tokens per day: a provider's daily token quota |
+| Constraints file | A pip file that pins versions of every package that may be installed |
+| JUnit XML | Standard test report format; pytest writes it with `--junitxml` |
+| Collection error | pytest could not import a test module, so its tests never ran |
 | Verdict | Review result, `pass` or `changes_needed`, computed from finding severities |
 | Structured output | LLM output constrained to and validated against a schema |
 | Triage | Deciding whether a failing test is caused by the code, the test or the environment |

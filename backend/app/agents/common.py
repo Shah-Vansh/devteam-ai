@@ -99,3 +99,19 @@ def size_batches(
     if current:
         batches.append(current)
     return batches
+
+
+def context_block(files: Mapping[str, str], budget: int = FULL_TEXT_CHAR_BUDGET) -> str:
+    """As much full text as fits in `budget` (smallest files first, which keeps the most
+    files whole), and outlines for the rest."""
+    full: dict[str, str] = {}
+    used = 0
+    for path in sorted(files, key=lambda p: len(files[p])):
+        if used + len(files[path]) > budget:
+            break
+        full[path] = files[path]
+        used += len(files[path])
+    rest = {p: c for p, c in files.items() if p not in full}
+    return "\n\n".join(
+        part for part in (files_block(full, numbered=False), outlines_block(rest)) if part
+    )

@@ -29,6 +29,12 @@ class FileChange(BaseModel):
     def content_size(cls, value: str) -> str:
         if len(value) > MAX_FILE_CHARS:
             raise ValueError(f"file content longer than {MAX_FILE_CHARS} characters")
+        # Seen live: a model wrote requirements.txt as one line containing the two
+        # characters backslash and n, so every package was hidden inside a comment.
+        if "\\n" in value and "\n" not in value.strip():
+            raise ValueError(
+                "file content contains literal \\n sequences instead of real line breaks"
+            )
         return value
 
     @model_validator(mode="after")

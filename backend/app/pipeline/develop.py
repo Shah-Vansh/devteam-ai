@@ -20,20 +20,18 @@ from typing import Literal
 import anyio.to_thread
 
 from app.agents.common import AgentOutputError
-from app.agents.developer import Developer
+from app.agents.developer import Developer, DeveloperInputError
 from app.agents.reviewer import Reviewer
 from app.llm.base import LLMUsage
 from app.mcp_clients.filesystem import FilesystemClient, FilesystemToolError
+from app.pipeline.budget import LLMBudget, LLMBudgetExceeded  # noqa: F401 - re-exported
 from app.schemas.code import CodeChanges
 from app.schemas.plan import ProjectPlan
 from app.schemas.review import ReviewReport
+from app.schemas.testing import TestSuite
 
 ReviewStatus = Literal["REVIEW_PASSED", "FAILED_REVIEW"]
 Progress = Callable[[str], None]
-
-
-class LLMBudgetExceeded(Exception):
-    """The run would need more LLM calls than MAX_LLM_CALLS_PER_RUN allows."""
 
 
 @dataclass
@@ -61,7 +59,9 @@ def new_workspace_name(project_name: str) -> str:
     return f"{base}-{secrets.token_hex(3)}"
 
 
-async def write_changes(fs: FilesystemClient, workspace: str, changes: CodeChanges) -> list[str]:
+async def write_changes(
+    fs: FilesystemClient, workspace: str, changes: CodeChanges | TestSuite
+) -> list[str]:
     """Create new files, update existing ones. The workspace is created by the first write."""
     try:
         existing = set(await fs.list_files(workspace))
@@ -86,15 +86,12 @@ async def develop_and_review(
     fs: FilesystemClient,
     max_review_rounds: int = 2,
     max_llm_calls: int = 40,
+    budget: LLMBudget | None = None,
     progress: Progress = lambda _msg: None,
     on_report: Callable[[ReviewReport], None] = lambda _report: None,
 ) -> DevelopResult:
-    usages: list[LLMUsage] = []
-
-    def spend(new: list[LLMUsage]) -> None:
-        usages.extend(new)
-        if len(usages) > max_llm_calls:
-            raise LLMBudgetExceeded(f"used {len(usages)} LLM calls; limit is {max_llm_calls}")
+    budget = budget or LLMBudget(max_llm_calls)
+    spend = budget.spend
 
     progress("developer: writing files")
     generated = await anyio.to_thread.run_sync(developer.generate, plan)
@@ -135,7 +132,7 @@ async def develop_and_review(
             revised = await anyio.to_thread.run_sync(
                 partial(developer.revise, plan, current, report.to_fix)
             )
-        except AgentOutputError as exc:
+        except (AgentOutputError, DeveloperInputError) as exc:
             # The Developer could not produce a usable fix (for example it returned no
             # changes twice). Reviewing the same code again would not help.
             status, stop_reason = "FAILED_REVIEW", f"revision {review_rounds} failed: {exc}"
@@ -151,6 +148,6 @@ async def develop_and_review(
         reports=reports,
         review_rounds=review_rounds,
         files=await fs.list_files(workspace),
-        usages=usages,
+        usages=list(budget.usages),
         stop_reason=stop_reason,
     )

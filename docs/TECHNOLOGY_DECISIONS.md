@@ -39,6 +39,20 @@
 All three run on a temporary copy of the files with fixed arguments and no shell. They parse code
 and never execute it, so running them on the host is safe.
 
+### Dependency pinning in the sandbox (Phase 4)
+
+| Option | Strengths | Weaknesses | Decision |
+|---|---|---|---|
+| Pin top-level packages only | Simple | Transitive packages float (seen in Spike A) | Not used |
+| pip constraints file generated in the sandbox | Pins everything; matches the sandbox's Python; plain pip | Must be regenerated when the allow-list changes | Used |
+| `pip-compile` / `uv pip compile` on the host | Good tooling | Host Python 3.14 differs from the sandbox's 3.11, so pins could be wrong | Not used |
+| Custom E2B template with packages preinstalled | Fastest runs, no install step | Template build and maintenance; less flexible | Later, if install time matters |
+
+### Parsing test results (Phase 4)
+
+JUnit XML (`pytest --junitxml`) over parsing console output: structured, per-test outcomes and
+messages. Parsed with `defusedxml` because the file is produced by untrusted code.
+
 ## Comparisons to be completed
 
 Orchestration: LangGraph vs LangChain agents vs CrewAI vs AutoGen vs plain Python.

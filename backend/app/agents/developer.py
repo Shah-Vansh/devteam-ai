@@ -15,6 +15,7 @@ from app.agents.common import (
     outlines_block,
     size_batches,
 )
+from app.execution.packages import packages_rule
 from app.llm.base import LLMClient
 from app.schemas.code import CodeChanges
 from app.schemas.plan import ProjectPlan
@@ -57,7 +58,7 @@ class Developer:
 
     def __init__(self, llm: LLMClient) -> None:
         self._llm = llm
-        self._system_prompt = PROMPT_FILE.read_text(encoding="utf-8")
+        self._system_prompt = PROMPT_FILE.read_text(encoding="utf-8") + packages_rule()
 
     def generate(self, plan: ProjectPlan) -> AgentCall[CodeChanges]:
         """Write every planned file, in batches of at most FILES_PER_CALL.
@@ -72,7 +73,9 @@ class Developer:
         notes = []
         for batch in file_batches(plan):
             call = self._generate_batch(plan, batch, written)
-            written.update(call.data.as_dict())
+            # Keep only this batch's files. A model that re-sends earlier planned files
+            # (seen live with a smaller model) must not overwrite them.
+            written.update({p: c for p, c in call.data.as_dict().items() if p in batch})
             usages.extend(call.usages)
             if call.data.notes.strip():
                 notes.append(call.data.notes.strip())
@@ -90,6 +93,7 @@ class Developer:
         self, plan: ProjectPlan, batch: list[str], written: Mapping[str, str]
     ) -> AgentCall[CodeChanges]:
         wanted = set(batch)
+        planned = {f.path for f in plan.files}
         # Outlines (imports, signatures, routes, fields) of earlier batches are enough to
         # stay consistent with them and much smaller than their full text.
         context = f"\n\nFiles already written:\n{outlines_block(written)}" if written else ""
@@ -104,8 +108,8 @@ class Developer:
             problems = []
             if missing := sorted(wanted - returned):
                 problems.append(f"these requested files are missing: {', '.join(missing)}")
-            if extra := sorted(returned - wanted):
-                problems.append(f"these files were not requested now: {', '.join(extra)}")
+            if extra := sorted(returned - planned):
+                problems.append(f"these files are not in the plan: {', '.join(extra)}")
             return problems
 
         return generate_checked(
@@ -125,9 +129,14 @@ class Developer:
         if not findings:
             raise DeveloperInputError("revise needs at least one finding")
         current = dict(files)
-        targets = sorted({f.file for f in findings if f.file in current})
+        # requirements.txt may be created by a fix if it is missing altogether
+        targets = sorted(
+            {f.file for f in findings if f.file in current or f.file == "requirements.txt"}
+        )
         if not targets:
             raise DeveloperInputError("findings do not refer to any existing file")
+        for path in targets:
+            current.setdefault(path, "")  # a file to create starts empty
 
         changed: dict[str, str] = {}
         usages = []
@@ -160,7 +169,7 @@ class Developer:
             part
             for part in (
                 plan_block(plan),
-                files_block({p: files[p] for p in batch}),
+                files_block({p: files.get(p, "") for p in batch}),
                 outlines_block(others),
                 findings_block(findings),
                 "Fix every finding above. Return only the files you change, chosen from the "

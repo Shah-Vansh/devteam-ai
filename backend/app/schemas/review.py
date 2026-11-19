@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 
 Severity = Literal["high", "medium", "low"]
 Category = Literal["bug", "security", "spec", "quality"]
-Source = Literal["reviewer", "python", "ruff", "bandit"]
+Source = Literal["reviewer", "python", "ruff", "bandit", "tests", "sandbox"]
 Verdict = Literal["pass", "changes_needed"]
 
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}

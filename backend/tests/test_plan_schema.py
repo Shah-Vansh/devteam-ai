@@ -42,3 +42,22 @@ def test_duplicate_task_ids_rejected(todo_plan_data):
     todo_plan_data["tasks"][1]["id"] = 1
     with pytest.raises(ValidationError, match="unique ids"):
         ProjectPlan.model_validate(todo_plan_data)
+
+
+def test_plan_must_include_the_entry_point(todo_plan_data):
+    todo_plan_data["files"] = [f for f in todo_plan_data["files"] if f["path"] != "app/main.py"]
+    for task in todo_plan_data["tasks"]:
+        task["files"] = [p for p in task["files"] if p != "app/main.py"]
+    with pytest.raises(ValidationError, match="must include app/main.py"):
+        ProjectPlan.model_validate(todo_plan_data)
+
+
+def test_missing_requirements_file_is_added_not_rejected(todo_plan_data):
+    # Seen live: a smaller model left it out twice in a row despite the prompt.
+    todo_plan_data["files"] = [
+        f for f in todo_plan_data["files"] if f["path"] != "requirements.txt"
+    ]
+    for task in todo_plan_data["tasks"]:
+        task["files"] = [p for p in task["files"] if p != "requirements.txt"]
+    plan = ProjectPlan.model_validate(todo_plan_data)
+    assert [f.path for f in plan.files][-1] == "requirements.txt"

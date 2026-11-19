@@ -2,6 +2,33 @@
 
 Answers describe what is actually built. Planned parts are labelled as planned.
 
+## Phase 4 — Execution and the Tester agent
+
+**How do you run AI-generated code safely?**
+Never on the host. Each test run gets a fresh E2B microVM with no environment variables.
+Packages come only from an allow-list, every version pinned by a constraints file. The internet is
+switched off before pytest starts, and the sandbox is killed in a `finally` block. A live test that
+tries to reach pypi.org is refused.
+
+**What happens without a sandbox key?**
+A static-only executor reports `NOT_EXECUTED`. It never reports a pass for code that did not run.
+
+**How are test failures handled?**
+The Tester triages each failure as bad code, bad test or environment. Code goes to the Developer,
+tests to the Tester, environment ends the run. At most two fix rounds, and every LLM call counts
+against one per-run budget.
+
+**What bugs did live runs find?**
+A model wrote `requirements.txt` as a single line with literal `\n` text, so nothing was installed,
+and triage blamed the environment. I added a schema guard, a static check that every import is
+declared, and a triage rule. Also: plans without `requirements.txt` (now added deterministically),
+lost results when triage failed (now saved immediately), and collection-error names that did not
+match (now normalised).
+
+**Why a constraints file?**
+Pinning only top-level packages lets dependencies drift; a constraints file pins all 40 packages.
+It is generated inside the sandbox so the versions fit its Python 3.11.
+
 ## Phase 3 — Developer, Reviewer and static analysis
 
 **How does code get from the model to disk?**

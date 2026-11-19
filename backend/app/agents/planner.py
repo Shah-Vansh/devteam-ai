@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.execution.packages import packages_rule
 from app.llm.base import LLMClient, LLMUsage
 from app.schemas.plan import Clarification, ProjectPlan
 
@@ -26,7 +27,7 @@ class Planner:
 
     def __init__(self, llm: LLMClient) -> None:
         self._llm = llm
-        self._system_prompt = PROMPT_FILE.read_text(encoding="utf-8")
+        self._system_prompt = PROMPT_FILE.read_text(encoding="utf-8") + packages_rule()
 
     def plan(
         self, requirement: str, clarifications: list[Clarification] | None = None

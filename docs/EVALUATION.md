@@ -61,6 +61,16 @@ Spot checks, not the full benchmark (that needs Phase 4 test results).
 | Recipe API with search by ingredient (medium) | 6 | `REVIEW_PASSED`, 1 review | 2 (+1 plan) | `/recipes/search` correctly declared before `/recipes/{id}` |
 | Task API with registration, JWT login, per-user tasks (hard) | 8–10 | Not completed | — | Exposed the token-budget problems below. After the fixes, a run did generate, review, revise and re-review; it then stopped on an empty revision (now handled as `FAILED_REVIEW`). The final rerun used up the free tier's daily token quota during the first review. |
 
+### Build and test (Phase 4, 2026-11-19, live)
+
+| What | Verified live? |
+|---|---|
+| E2B executor alone: pinned install, internet off, pytest, JUnit, kill (known app, 4 tests) | Yes: 3 passed, the deliberately wrong test failed with its message, network blocked; 30 s |
+| Plan → write → review → 2 revisions → review pass | Yes (`gpt-oss-20b`) |
+| Tester → E2B run of generated tests | Yes: e.g. 7 passed, 3 failed in 12.6 s |
+| Triage of real failures | Yes: 2 `bad_code`, 1 `bad_test` |
+| Fix → re-test → pass | Not yet: the 20b model's fix was rejected as invalid JSON twice (run ended cleanly as `FAILED_TESTS`); then both models' daily quotas were used up. Covered by unit tests; to repeat with `gpt-oss-120b` |
+
 Free-tier limits (Groq `gpt-oss-120b`): 8,000 tokens per minute and 200,000 tokens per day. A hard
 requirement uses roughly 30,000–60,000 tokens per run, so only a few such runs fit in a day.
 

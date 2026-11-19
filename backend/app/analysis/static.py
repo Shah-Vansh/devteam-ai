@@ -18,6 +18,7 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
+from app.execution.packages import IMPORT_TO_PACKAGE, allowed_names_text, declared_packages
 from app.schemas.review import Finding
 from app.workspace.paths import validate_relative_path
 
@@ -41,7 +42,7 @@ class StaticReport:
 
     @property
     def syntax_ok(self) -> bool:
-        return not any(f.source == "python" for f in self.findings)
+        return not any(f.rule == "SyntaxError" for f in self.findings)
 
 
 def analyze(files: dict[str, str]) -> StaticReport:
@@ -49,6 +50,8 @@ def analyze(files: dict[str, str]) -> StaticReport:
     python_files = {p: c for p, c in files.items() if p.endswith(".py")}
 
     report.findings.extend(_syntax_findings(python_files))
+    if python_files:
+        report.findings.extend(_dependency_findings(python_files, files.get("requirements.txt")))
     report.tools_run.append("python")
     if not python_files:
         return report
@@ -70,6 +73,85 @@ def analyze(files: dict[str, str]) -> StaticReport:
 
     report.findings.sort(key=lambda f: (f.file, f.line))
     return report
+
+
+def _dependency_findings(python_files: dict[str, str], requirements: str | None) -> list[Finding]:
+    """Every third-party module the app imports must be allowed and declared in
+    requirements.txt; otherwise the sandbox will not install it and imports fail."""
+    declared = declared_packages(requirements or "")
+    local = {PurePosixPath(p).parts[0].removesuffix(".py") for p in python_files}
+    missing: dict[str, str] = {}  # requirement or module -> first file using it
+    unknown: dict[str, str] = {}
+    for path, content in python_files.items():
+        if path.startswith("tests/"):
+            continue  # pytest and friends are provided by the test runner
+        try:
+            tree = ast.parse(content)
+        except SyntaxError:
+            continue  # already reported
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                modules = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                modules = [node.module]
+            else:
+                continue
+            for module in modules:
+                top = module.split(".")[0]
+                if top in sys.stdlib_module_names or top in local or top == "__future__":
+                    continue
+                package = IMPORT_TO_PACKAGE.get(top)
+                if package is None:
+                    unknown.setdefault(top, path)
+                elif package not in declared:
+                    missing.setdefault(package, path)
+
+    if missing and requirements is None:
+        return [
+            _dependency_finding(
+                "requirements.txt",
+                "requirements.txt is missing, but the app imports "
+                + ", ".join(f"`{p}`" for p in sorted(missing)),
+                "Create requirements.txt listing: " + ", ".join(sorted(missing)) + ".",
+            )
+        ] + [
+            _dependency_finding(
+                path,
+                f"imports `{module}`, which is not an allowed package in the sandbox",
+                f"Use only: {allowed_names_text()}.",
+            )
+            for module, path in sorted(unknown.items())
+        ]
+    findings = [
+        _dependency_finding(
+            "requirements.txt",
+            f"`{package}` is imported (first in {path}) but not listed in requirements.txt",
+            f"Add `{package}` to requirements.txt on its own line.",
+        )
+        for package, path in sorted(missing.items())
+    ]
+    findings += [
+        _dependency_finding(
+            path,
+            f"imports `{module}`, which is not an allowed package in the sandbox",
+            f"Use only: {allowed_names_text()}.",
+        )
+        for module, path in sorted(unknown.items())
+    ]
+    return findings
+
+
+def _dependency_finding(file: str, message: str, fix: str) -> Finding:
+    return Finding(
+        source="python",
+        rule="dependency",
+        file=file,
+        line=0,
+        severity="high",
+        category="bug",
+        message=message,
+        suggested_fix=fix,
+    )
 
 
 def _syntax_findings(python_files: dict[str, str]) -> list[Finding]:

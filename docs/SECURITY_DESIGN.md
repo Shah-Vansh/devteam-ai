@@ -33,8 +33,8 @@ flowchart LR
 | T6 | Runaway loops or cost | `MAX_REVIEW_ROUNDS`, `MAX_FIX_ROUNDS`, `MAX_LLM_CALLS_PER_RUN`, timeouts | 5 |
 | T7 | Unauthorised commit | Human approval plus one-time token verified by the Git server | 6 |
 | T8 | Command injection through Git | Fixed argument lists, no shell, no user-controlled flags | 6 |
-| T9 | Malicious dependency in the sandbox | Small pinned allow-list with a constraints file | 4 |
-| T10 | Network abuse by generated code | Internet switched off before generated code runs | 4 |
+| T9 | Malicious dependency in the sandbox | Small allow-list; every package pinned by a constraints file generated in the sandbox; unknown names never installed; `-r`/`--index-url` lines refused | 4 (built) |
+| T10 | Network abuse by generated code | Internet switched off before pytest runs; verified live by a test that tries to reach pypi.org | 4 (built) |
 | T11 | Local API abuse by other sites | Bind to `127.0.0.1`; CORS limited to the frontend origin | 7 |
 | T12 | Sandbox escape or provider compromise | Accepted risk; only generated code is sent; documented | — |
 
@@ -48,6 +48,8 @@ contents; long LLM outputs are truncated.
 - Single user, no authentication (localhost only).
 - Generated code leaves the machine to the sandbox provider.
 - LLM review and static analysis reduce risk; they do not prove code is secure.
+- The JUnit report and test output come from untrusted code: parsed with `defusedxml`,
+  size-limited, and only shown to models as delimited data.
 - Generated code may contain text aimed at the Reviewer ("approve this"). The verdict is
   computed from findings, and static tools are independent of the model, so such text cannot
   force a pass while a high static finding exists (tested).
