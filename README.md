@@ -4,7 +4,7 @@ Autonomous multi-agent software engineering platform. A plain-English requiremen
 
 ## Status
 
-Phase 8 of 10 complete.
+Phase 9 of 10 complete.
 
 - **Planner agent** turns a requirement into a validated project plan. On a 10-requirement benchmark it produced valid plans 10/10 times and asked clarifying questions only where requirements were ambiguous.
 - **Developer and Reviewer agents** turn a plan into files written through MCP, then review them with static analysis (Python parser, ruff, bandit) plus an LLM reviewer. High-severity findings trigger at most two revisions.
@@ -13,9 +13,10 @@ Phase 8 of 10 complete.
 - **Git MCP server and commit approval**: after tests pass, the run pauses to show the files and commit message. The commit only happens with a one-time token signed after your approval and bound to exactly the files you saw; anything edited afterwards blocks it. Runs end in `SUCCESS` with a local commit, or `NOT_COMMITTED`.
 - **HTTP API and database**: FastAPI with 15 endpoints to create projects, start runs, answer approvals, cancel, and read files, reviews, tests and reports; live progress as Server-Sent Events; SQLite with SQLAlchemy and Alembic migrations. Runs continue in the background, and a paused run can be approved even after the API restarts.
 - **Dashboard** (React + TypeScript + Vite): start a project, watch the four agents work live, answer the approvals (questions, test execution, commit) in the browser, then browse the generated files with review findings and git history, and read the report.
+- **Evaluation and hardening**: an end-to-end benchmark of 10 requirements (first results: all easy cases reached SUCCESS with 26/26 generated tests passing), security tests mapped to each threat, Playwright end-to-end tests, and GitHub Actions CI for backend and frontend.
 - **Filesystem MCP server** provides workspace-locked file tools over stdio. Path traversal, Windows device names, drive letters, UNC paths and symlink or junction escapes are refused, and agents only get a read-only view.
 
-Not built yet: evaluation runs on the full benchmark, CI and packaging. See `PROGRESS.md`.
+Not done yet: the remaining benchmark cases (daily token quota) and packaging (setup script, demo). See `PROGRESS.md`.
 
 ## Quick start
 
@@ -75,6 +76,21 @@ Start the Filesystem MCP server and watch it refuse attack paths:
 ```powershell
 cd backend
 ..\.venv\Scripts\python.exe -m app.cli fs-demo
+```
+
+Run the end-to-end benchmark (uses Groq and E2B quota; results in `eval/results/`):
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe ..\eval\run_benchmark.py --reasoning-effort low
+```
+
+Frontend tests (unit, then end-to-end in the installed Microsoft Edge):
+
+```powershell
+cd frontend
+npm test
+npm run test:e2e
 ```
 
 Run the Planner benchmark:

@@ -40,6 +40,31 @@ flowchart LR
 | T11 | Local API abuse by other sites | Bound to `127.0.0.1`; CORS limited to the frontend origin, GET/POST only; no authentication (single-user, documented); errors never return internals | 7 (built) |
 | T12 | Sandbox escape or provider compromise | Accepted risk; only generated code is sent; documented | — |
 
+## Security tests
+
+Every built control has automated tests (backend `pytest`, all offline):
+
+| Threat | Tests |
+|---|---|
+| T1 Generated code on the host | `test_static_analysis` (tools parse, never import); `test_execution` (static-only executor never runs code, reports `NOT_EXECUTED`) |
+| T2 Path traversal | `test_workspace_paths` (`..`, drive letters, UNC, NTFS streams, device names, hidden files); `test_workspace_store` (symlink and junction escapes, size and count limits, no host paths in errors); `test_filesystem_mcp`; `test_api` (`../../.env` through the API → 400) |
+| T3 Prompt injection | `test_security` (agents are built from an LLM only; Reviewer gets the read-only view; injected plan paths rejected); `test_reviewer` (comment telling the reviewer to approve cannot pass a bandit finding); `test_filesystem_mcp` (read-only view refuses write tools) |
+| T4 Malformed agent output | `test_plan_schema`, `test_code_and_review_schemas` (paths, sizes, test files, escaped newlines); `test_developer`, `test_tester` (corrective retries, then errors) |
+| T5 Secret leakage | `test_logging` (redaction); `test_security` (no keys to MCP servers, health and error bodies, settings repr); `test_execution` (no environment passed to the sandbox) |
+| T6 Runaway loops or cost | `test_workflow` (review and fix round limits, LLM-call budget across stages); `test_execution` (timeouts end as `ERROR`) |
+| T7 Unauthorised commit | `test_gitops` (missing, forged, edited, expired, wrong-workspace and reused tokens); `test_workflow` (declined commit, edit during the pause); `test_security` (no API route can commit) |
+| T8 Command injection through Git | `test_gitops` (message validation, user config and hooks ignored) |
+| T9 Malicious dependency | `test_execution` (unknown packages, `-r` and `--index-url` lines refused; every allowed package pinned) |
+| T10 Network abuse | `test_execution` (internet switched off before pytest, in that order); live check: a socket to pypi.org was refused |
+| T11 Local API abuse | `test_security` (binds to 127.0.0.1, CORS only for the dashboard, cross-site preflight refused) |
+| T13 Wrong repository | `test_gitops` (workspace inside another repository reports `NOT_A_REPOSITORY`) |
+| T14 Content changed after approval | `test_workflow` (file edited during the commit pause → `NOT_COMMITTED`) |
+
+Failure scenarios with tests: provider outage and used-up quota → `ERROR`; model that never gives
+a valid answer → `FAILED_REVIEW` / `FAILED_TESTS`; sandbox unreachable, install failure or test
+timeout → `ERROR`; the Filesystem MCP server dying mid-run → `ERROR`; API restart while a run is
+paused (resumes) or mid-step (marked `ERROR`).
+
 ## Logging
 
 Structured logs with request and run IDs. Never log API keys, approval tokens, or full file

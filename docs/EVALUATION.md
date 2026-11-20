@@ -1,13 +1,13 @@
 # Evaluation
 
-> Status: planned for Phase 9; the benchmark set is drafted in Phase 1 and used to choose the model.
+> Status: end-to-end runner built in Phase 9 (`eval/run_benchmark.py`); first live results below.
 
 ## Why
 
 Unit tests prove the plumbing works. They do not show whether the system produces working
 software. The benchmark measures that, with numbers that can be reported honestly.
 
-## Benchmark set (draft)
+## Benchmark set
 
 Ten fixed requirements, increasing in difficulty:
 
@@ -36,6 +36,44 @@ Ten fixed requirements, increasing in difficulty:
 
 `eval/results/<date>-<model>.json` plus a summary table in this file, e.g. "7/10 benchmark
 requirements reach SUCCESS with model X". Results are reported as measured, including failures.
+
+## End-to-end benchmark (Phase 9, 2026-11-20)
+
+Each case runs the real workflow: Groq `gpt-oss-120b` (reasoning effort low) for the agents,
+E2B for the tests, a real local commit. Pauses are approved automatically. Code:
+`backend/app/evaluation/benchmark.py`, runner `eval/run_benchmark.py`, raw results
+`eval/results/2026-11-20-e2e-openai_gpt-oss-120b.json`.
+
+| Case | Difficulty | Status | Review rounds | Fix rounds | Tests | LLM calls | Tokens | Time |
+|---|---|---|---|---|---|---|---|---|
+| b01 health check | easy | SUCCESS | 0 | 0 | 5/5 | 4 | 8,046 | 21 s |
+| b02 todo CRUD | easy | SUCCESS | 0 | 0 | 10/10 | 5 | 16,167 | 118 s |
+| b03 notes with SQLite | easy | SUCCESS | 0 | 0 | 11/11 | 5 | 19,674 | 121 s |
+| b04 URL shortener | medium | FAILED_TESTS | 1 | 0 | 3/7 | 7 | 24,362 | 224 s |
+| b05 inventory | medium | ERROR (daily quota) | 0 | 0 | 5/11 | 5 | 18,863 | 148 s |
+| b06–b10 | medium, hard | not run (daily quota) | | | | | | |
+
+**Headline (as measured): 3 of 5 cases run reached `SUCCESS`; all 3 easy cases succeeded with
+26/26 generated tests passing, each in about 2 minutes and 4–5 LLM calls.** The free tier's
+200,000 tokens per day ran out during b05, so b05–b10 are not measured yet.
+
+What the failures show:
+
+- **b04:** the generated tests failed (3/7: redirect and statistics endpoints) and triage did not
+  name the four failing tests in a form the check accepted, twice, so the run stopped before any
+  fix round. The rejected answer was not recorded, so the exact cause is unknown; the most likely
+  one, bare function names such as `test_redirect_success`, is now accepted, and the error message
+  now includes the names the model gave.
+- **b05:** stopped by the provider's daily token limit, recorded as `ERROR` with the reason.
+
+To finish the benchmark when the quota allows:
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe ..\eval\run_benchmark.py --reasoning-effort low --resume ..\eval\results\2026-11-20-e2e-openai_gpt-oss-120b.json
+```
+
+`--resume` keeps finished cases and redoes those stopped by provider errors.
 
 ## Results so far
 

@@ -1,5 +1,36 @@
 # Learning Notes
 
+## Phase 9 — Evaluation and hardening
+
+### Measure the whole system, honestly
+Unit tests prove parts work; the benchmark measures whether the system produces working
+software. Every case is recorded as it ended, failures and quota stops included, and the summary
+says how many were actually run.
+
+### Make long, rate-limited work resumable
+Results are saved after every case, and `--resume` keeps finished cases and redoes only those
+stopped by provider errors.
+
+### Security tests mirror the threat model
+Each threat in SECURITY_DESIGN has at least one test, and the index says which. Some are
+structural (agents are built from an LLM only, so they hold no write tools), some behavioural
+(forged tokens are refused).
+
+### End-to-end tests with a mocked backend
+Playwright drives the real dashboard in a real browser while `page.route` answers the API calls.
+The test is fast and deterministic because no LLM, sandbox or database is involved. A route
+pattern that is too broad also captures the app's own files.
+
+### CI
+Every push runs lint, 329 backend tests on two Python versions, the frontend checks and the
+browser tests on Linux, with no secrets.
+
+### Checkpoint questions
+1. Why does the benchmark report 3/5 instead of 3/10, and why does that matter?
+2. Why can CI run every test without the Groq and E2B keys?
+3. What would go wrong with `page.route("**/api/**")` in a Vite dev server?
+4. Pick two threats and name the tests that cover them.
+
 ## Phase 8 — React dashboard
 
 ### Components, props, state

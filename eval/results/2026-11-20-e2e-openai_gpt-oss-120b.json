@@ -1,0 +1,122 @@
+{
+  "model": "openai/gpt-oss-120b",
+  "reasoning_effort": "low",
+  "executor": "e2b",
+  "date": "2026-11-20",
+  "summary": {
+    "cases": 5,
+    "success": 3,
+    "by_status": {
+      "SUCCESS": 3,
+      "FAILED_TESTS": 1,
+      "ERROR": 1
+    },
+    "by_difficulty": {
+      "easy": {
+        "cases": 3,
+        "success": 3
+      },
+      "medium": {
+        "cases": 2,
+        "success": 0
+      }
+    },
+    "tests_passed": 34,
+    "tests_total": 44,
+    "llm_calls": 26,
+    "tokens": 87112,
+    "seconds": 632.1
+  },
+  "cases": [
+    {
+      "id": "b01",
+      "difficulty": "easy",
+      "run_id": "20261120-173719-5f73",
+      "status": "SUCCESS",
+      "stop_reason": "",
+      "review_rounds": 0,
+      "fix_rounds": 0,
+      "reviews": 1,
+      "test_runs": 1,
+      "tests_passed": 5,
+      "tests_total": 5,
+      "committed": true,
+      "llm_calls": 4,
+      "input_tokens": 5888,
+      "output_tokens": 2158,
+      "seconds": 20.9
+    },
+    {
+      "id": "b02",
+      "difficulty": "easy",
+      "run_id": "20261120-173800-9a29",
+      "status": "SUCCESS",
+      "stop_reason": "",
+      "review_rounds": 0,
+      "fix_rounds": 0,
+      "reviews": 1,
+      "test_runs": 1,
+      "tests_passed": 10,
+      "tests_total": 10,
+      "committed": true,
+      "llm_calls": 5,
+      "input_tokens": 11151,
+      "output_tokens": 5016,
+      "seconds": 117.9
+    },
+    {
+      "id": "b03",
+      "difficulty": "easy",
+      "run_id": "20261120-174018-d727",
+      "status": "SUCCESS",
+      "stop_reason": "",
+      "review_rounds": 0,
+      "fix_rounds": 0,
+      "reviews": 1,
+      "test_runs": 1,
+      "tests_passed": 11,
+      "tests_total": 11,
+      "committed": true,
+      "llm_calls": 5,
+      "input_tokens": 14117,
+      "output_tokens": 5557,
+      "seconds": 120.9
+    },
+    {
+      "id": "b04",
+      "difficulty": "medium",
+      "run_id": "20261120-174239-60c0",
+      "status": "FAILED_TESTS",
+      "stop_reason": "triage: no usable answer: tester output rejected: these failing tests were not classified: tests/test_redirect.py::test_redirect_not_found, tests/test_redirect.py::test_redirect_success, tests/test_stats.py::test_stats_after_clicks, tests/test_stats.py::test_stats_initial",
+      "review_rounds": 1,
+      "fix_rounds": 0,
+      "reviews": 2,
+      "test_runs": 1,
+      "tests_passed": 3,
+      "tests_total": 7,
+      "committed": false,
+      "llm_calls": 7,
+      "input_tokens": 19271,
+      "output_tokens": 5091,
+      "seconds": 224.0
+    },
+    {
+      "id": "b05",
+      "difficulty": "medium",
+      "run_id": "20261120-174643-b712",
+      "status": "ERROR",
+      "stop_reason": "LLM provider request failed: tester: provider request failed: Error code: 429 - Rate limit reached for model `openai/gpt-oss-120b` in organization `org_<redacted>` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 194591, Requested 8303. Please try again in 20m50.2",
+      "review_rounds": 0,
+      "fix_rounds": 0,
+      "reviews": 1,
+      "test_runs": 1,
+      "tests_passed": 5,
+      "tests_total": 11,
+      "committed": false,
+      "llm_calls": 5,
+      "input_tokens": 13724,
+      "output_tokens": 5139,
+      "seconds": 148.4
+    }
+  ]
+}

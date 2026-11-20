@@ -88,6 +88,10 @@ def test_triage_missing_a_failure_is_rejected(todo_plan, todo_files):
         ("tests/test_a.py::test_y", "tests/test_a.py::test_x", False),
         ("tests/test_b.py", "tests/test_a.py::(collection)", False),
         ("", "tests/test_a.py::test_x", False),
+        # Found in the benchmark (b04): a model naming only the test function.
+        ("test_redirect_success", "tests/test_redirect.py::test_redirect_success", True),
+        ("test_x", "tests/test_a.py::test_y", False),
+        ("test_a", "tests/test_a.py::test_x", False),  # a bare module is not a test name
     ],
 )
 def test_same_test_accepts_common_spellings(given, actual, same):

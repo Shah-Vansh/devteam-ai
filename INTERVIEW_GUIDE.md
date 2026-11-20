@@ -2,6 +2,31 @@
 
 Answers describe what is actually built. Planned parts are labelled as planned.
 
+## Phase 9 — Evaluation and hardening
+
+**Does it actually work? Give numbers.**
+On the first live benchmark run with `gpt-oss-120b`, 3 of the 5 cases that could run reached
+`SUCCESS`. All three easy requirements succeeded with 26/26 generated tests passing in the
+sandbox, each in about two minutes with 4–5 LLM calls. One medium case failed its tests and then
+failed triage; another hit the free tier's daily token limit. The remaining five are not measured
+yet. I report it exactly like that.
+
+**What did the failed case teach you?**
+The triage check rejected answers that did not name the failing tests in an accepted form. I made
+the matching accept bare function names and made the error list the names the model gave, so the
+next failure can be diagnosed from the record.
+
+**How is the system tested?**
+329 backend tests (unit, agents with a fake LLM, real MCP servers over stdio, the full graph, the
+API with real migrations, security), 28 frontend unit tests, and Playwright tests that drive the
+dashboard in a browser against a mocked API. GitHub Actions runs all of it on Linux with no
+secrets.
+
+**How do you know the security controls work?**
+Each threat in the threat model maps to named tests: traversal and junction escapes, forged or
+reused commit tokens, agents without write tools, keys never reaching MCP servers or API responses,
+CORS, and the network being off in the sandbox (also checked live).
+
 ## Phase 8 — React dashboard
 
 **What does the dashboard do?**

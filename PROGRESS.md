@@ -11,8 +11,52 @@
 | 6 Git MCP | Done (2026-11-20) |
 | 7 Backend + DB | Done (2026-11-20) |
 | 8 Frontend | Done (2026-11-20) |
-| 9 Evaluation + hardening | Not started |
+| 9 Evaluation + hardening | Done (2026-11-20) |
 | 10 Packaging + portfolio | Not started |
+
+## Phase 9 — Evaluation and hardening
+
+Done:
+
+- End-to-end benchmark runner: `backend/app/evaluation/benchmark.py` and `eval/run_benchmark.py`
+  (pauses answered automatically, results saved after every case, `--resume` after quota
+  errors, per-difficulty summary and markdown table).
+- `tests/test_security.py` and a threat-to-test index in `docs/SECURITY_DESIGN.md`: agents hold
+  no write tools, no keys reach MCP servers or API responses, CORS limited to the dashboard, no
+  API route can write files or commit, unreachable sandbox, a dead MCP server mid-run.
+- Playwright end-to-end tests (`frontend/e2e/`) against a mocked backend: the full journey with
+  two approvals and an edited commit message, a refused start, an unknown page. Locally in the
+  installed Microsoft Edge (no browser download), in CI with Chromium.
+- GitHub Actions (`.github/workflows/ci.yml`): backend on Python 3.12 and 3.14 (ruff, pytest),
+  frontend (type check, Vitest, build), Playwright. No secrets needed.
+- 329 backend tests (21 new), 28 frontend unit tests, 3 end-to-end tests.
+
+Benchmark (live, `gpt-oss-120b`):
+
+| Case | Difficulty | Status | Review rounds | Fix rounds | Tests | LLM calls | Tokens | Time |
+|---|---|---|---|---|---|---|---|---|
+| b01 health check | easy | SUCCESS | 0 | 0 | 5/5 | 4 | 8,046 | 21 s |
+| b02 todo CRUD | easy | SUCCESS | 0 | 0 | 10/10 | 5 | 16,167 | 118 s |
+| b03 notes with SQLite | easy | SUCCESS | 0 | 0 | 11/11 | 5 | 19,674 | 121 s |
+| b04 URL shortener | medium | FAILED_TESTS | 1 | 0 | 3/7 | 7 | 24,362 | 224 s |
+| b05 inventory | medium | ERROR (daily quota) | 0 | 0 | 5/11 | 5 | 18,863 | 148 s |
+| b06–b10 | medium, hard | not run (daily quota) | | | | | | |
+
+Issues found and fixed:
+
+- The Playwright mock first matched every URL containing `/api/`, including Vite's own source
+  module `/src/api/client.ts`, so the app never loaded; it now matches only the backend origin.
+- `process` in the Playwright config needed Node types; Node-side files now have their own
+  `tsconfig.node.json`, so browser code still cannot use Node APIs.
+- The benchmark runner first used `time.sleep` inside async code, which would block the event
+  loop the MCP connections run on.
+- Benchmark b04: triage names that are only the test function are now accepted, and the error
+  lists the names the model gave.
+
+Not done (by design or carried over):
+
+- Benchmark cases b05–b10 (daily token quota); resume command in `docs/EVALUATION.md`.
+- CI has not run yet: it runs on the next push.
 
 ## Phase 8 — React dashboard
 

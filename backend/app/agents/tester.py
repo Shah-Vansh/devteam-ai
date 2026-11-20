@@ -38,11 +38,18 @@ def _test_key(name: str) -> list[str]:
 
 def same_test(given: str, actual: str) -> bool:
     """Models write test names in several styles (`tests/test_a.py::test_x`,
-    `tests.test_a.test_x`, or just the module for a collection error). Treat names as the
-    same if one is a prefix of the other after normalising separators."""
+    `tests.test_a.test_x`, just the module for a collection error, or just the function
+    `test_x`). Treat names as the same if one is a prefix of the other after normalising
+    separators, or if the given name is only a test function name that ends the other."""
     a, b = _test_key(given), _test_key(actual)
     shorter, longer = sorted((a, b), key=len)
-    return bool(shorter) and longer[: len(shorter)] == shorter
+    if not shorter:
+        return False
+    if longer[: len(shorter)] == shorter:
+        return True
+    # A bare function name ("test_x") for "tests/test_a.py::test_x". Only a single
+    # test_* part counts, so a module name alone cannot match another module's tests.
+    return len(a) == 1 and a[0].startswith("test") and b[-1] == a[0]
 
 
 class Tester:
@@ -101,7 +108,11 @@ class Tester:
                 name for name in failing if not any(same_test(i.test, name) for i in triage.items)
             )
             if missing:
-                problems.append(f"these failing tests were not classified: {', '.join(missing)}")
+                given = ", ".join(i.test for i in triage.items) or "none"
+                problems.append(
+                    f"these failing tests were not classified: {', '.join(missing)} "
+                    f"(names given: {given}); use the names exactly as listed"
+                )
             for item in triage.items:
                 if item.cause == "bad_code" and item.file not in app_files:
                     problems.append(

@@ -35,3 +35,7 @@ Thumbs.db
 
 # Local data (SQLite files)
 data/
+
+# Playwright output
+test-results/
+playwright-report/
