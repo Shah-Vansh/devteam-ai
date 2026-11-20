@@ -1,5 +1,30 @@
 # Learning Notes
 
+## Phase 10 — Packaging and portfolio
+
+### Setup is part of the product
+A project nobody else can start is not finished. The setup script checks Python, Node and git,
+creates the environment, installs everything and creates `.env` without overwriting an existing
+one. It skips broken Python launcher entries instead of failing on them.
+
+### Prove it on a fresh clone
+The only real test of setup instructions is running them where nothing is installed yet: a new
+clone, a new virtual environment, no `.env`, then the full test suites.
+
+### Sensible defaults
+The template now ships the benchmark-chosen provider, model and reasoning effort, so a new user
+adds only two keys.
+
+### Documentation that matches the code
+Status lines, component folders and promises ("restart a crashed server") were checked against
+what was actually built and corrected where they were plans, not facts.
+
+### Checkpoint questions
+1. Why does the setup script never overwrite an existing `.env`?
+2. What does a fresh-clone test catch that running tests in your own folder does not?
+3. Which two settings must a new user still provide, and what happens without the second one?
+4. Walk through the demo script: where are the two human approvals, and why there?
+
 ## Phase 9 — Evaluation and hardening
 
 ### Measure the whole system, honestly

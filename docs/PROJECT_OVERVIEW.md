@@ -1,6 +1,7 @@
 # Project Overview
 
-> Status: Phase 0 (planning). Everything below is the agreed design, not yet implemented.
+> Status: built (Phases 0–10, 2026-11-19 to 2026-11-20). What each phase delivered and what
+> was verified live: [PROGRESS.md](../PROGRESS.md). Measured results: [EVALUATION](EVALUATION.md).
 
 ## Problem
 

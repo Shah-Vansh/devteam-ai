@@ -1,8 +1,7 @@
 # Technology Decisions
 
-> Status: Phase 0. Each row is expanded into a full entry (what, problem, how it works, where
-> used, pros, cons, limits, alternatives, when alternatives win, scale outlook) in the phase
-> where the technology is first used.
+> Status: final. The selected stack below is what was built; comparisons follow, written as
+> each technology was introduced.
 
 ## Selected stack
 
@@ -20,7 +19,7 @@
 | Execution | E2B microVM behind `CodeExecutor`; static-only fallback | Real isolation without local virtualization; verified in spike | Docker becomes available or self-hosting needed | 0005 |
 | Tests | pytest, TestClient, Vitest, Playwright | Standard, fast, good fixtures | — | — |
 | Config | One root `.env` | Single source of truth; Vite reads it via `envDir` | Deployment with a secrets manager | 0010 |
-| Packaging | `venv` + PowerShell scripts | Native on Windows | Linux deployment (containers) | — |
+| Packaging | `venv` + `scripts/setup.ps1` / `start.ps1` (Windows), `setup.sh` (Linux, macOS) | Native tools only; a fresh clone runs with one command | Hosted or multi-user deployment (containers) | — |
 | CI | GitHub Actions | Free, Linux runners | — | — |
 
 ## Comparisons completed
@@ -66,28 +65,95 @@ The plain-async loops from Phases 3–4 were simpler but could not pause and res
 process. One cost: LangGraph's first import takes about 20 s on this machine (bytecode compile),
 then about 3 s.
 
-## Comparisons to be completed
+### Orchestration
 
-Orchestration: LangGraph vs LangChain agents vs CrewAI vs AutoGen vs plain Python.
-Orchestration framework vs agent library.
+| Option | Strengths | Weaknesses for this project |
+|---|---|---|
+| **LangGraph** (chosen) | Explicit graph; bounded loops as edges plus counters; `interrupt()`; checkpointers that survive restarts | More concepts than a plain loop |
+| LangChain agents | Quick tool-using agent | The model decides the flow; hard to bound and test |
+| CrewAI | Role-based crews out of the box | Less control over exact order, pauses and persistence |
+| AutoGen | Conversational multi-agent patterns | Free-form conversation is unpredictable in cost and outcome |
+| Plain Python | No dependency; what Phases 3–4 used | Pausing for a human and resuming in another process means writing a checkpointer |
 
-Tool integration: MCP vs direct function calls vs LLM function calling vs custom REST.
+An orchestration framework decides *what runs when*; an agent library decides *how one agent
+calls a model and tools*. This project uses LangGraph for the first and its own small agents for
+the second.
 
-Execution: E2B vs Modal vs Daytona vs Docker vs VMs vs GitHub Actions vs local subprocess vs
-WebAssembly; container vs microVM isolation.
+### Tool integration
 
-Databases: SQLite vs PostgreSQL; PostgreSQL vs MySQL; SQL vs NoSQL; MongoDB vs relational.
+| Option | Strengths | Weaknesses |
+|---|---|---|
+| **MCP over stdio** (chosen) | Standard discovery and JSON schemas; servers run as separate processes with only the environment they need; any MCP client can reuse them | A protocol layer to learn; process start-up cost |
+| Direct function calls | Simplest | No process boundary; tools share the backend's secrets and memory |
+| LLM function calling | The model picks tools | Gives the model the decision; this project keeps writes in workflow code (ADR 0004) |
+| Custom REST service | Familiar | Ports, authentication and schemas to design by hand |
 
-Backend: FastAPI vs Flask vs Django; Pydantic vs manual validation.
+MCP and function calling are not competitors: an MCP tool's schema can be offered to a model as a
+function. Here only read-only tools would ever be offered.
 
-Frontend: React vs Vue vs Angular; JavaScript vs TypeScript; polling vs SSE vs WebSocket.
+### Execution sandbox
 
-Python modelling: TypedDict vs Pydantic BaseModel vs dataclass vs dict.
+| Option | Isolation | Notes |
+|---|---|---|
+| **E2B microVM** (chosen) | Own kernel per run | Starts in about 3 s; network switch; no local virtualization needed (this machine has none) |
+| Modal, Daytona | Containers or VMs, provider-managed | Similar idea; E2B's per-run network switch fit best |
+| Docker | Shared host kernel | Not available here (no virtualization); a kernel bug can be an escape route |
+| Full VMs | Strong | Slow to start, heavy to manage per run |
+| GitHub Actions | Strong, remote | Minutes per run, needs a repository push |
+| Local subprocess | None | Generated code would run on the host: ruled out |
+| WebAssembly | Strong for pure code | Most Python packages and a real server stack do not run |
 
-Infrastructure: synchronous vs background workers; local vs distributed execution; Docker Compose
-vs Kubernetes.
+### Database
 
-Testing and data access: pytest vs unittest; SQLAlchemy vs raw SQL.
+| Option | Strengths | Weaknesses |
+|---|---|---|
+| **SQLite + SQLAlchemy + Alembic** (chosen) | Zero setup, one file, transactions, foreign keys, WAL | One writer at a time; one machine |
+| PostgreSQL | Concurrency, roles, scale | A server to install and run for a single-user tool |
+| MySQL | Widely hosted | Same trade-off as PostgreSQL, weaker on some SQL features |
+| MongoDB / NoSQL | Flexible documents | The data is relational (runs → reports → findings) and queried by relations |
+
+SQLAlchemy keeps PostgreSQL a configuration change away. Raw SQL would be shorter for a few
+queries but loses the typed models and makes migrations manual.
+
+### Backend
+
+| Option | Strengths | Weaknesses |
+|---|---|---|
+| **FastAPI + Pydantic** (chosen) | Async (needed for SSE and MCP), validation from types, automatic OpenAPI docs | Fewer built-ins than Django |
+| Flask | Small and simple | Sync by default; validation and docs by hand |
+| Django | Admin, ORM, auth included | Heavy for an API with no server-rendered pages |
+
+Pydantic validation is used everywhere the system meets untrusted data: model output, API
+requests, plans. Manual validation would be repeated and easy to get wrong.
+
+### Frontend and live updates
+
+| Option | Strengths | Weaknesses |
+|---|---|---|
+| **React + TypeScript** (chosen) | Large ecosystem; types catch API mismatches at build time | More setup than a template |
+| Vue, Angular | Good frameworks | No advantage here; Angular is heavier |
+| JavaScript only | Less setup | API shapes unchecked |
+| Polling | Simplest | Delayed updates, wasted requests |
+| **SSE** (chosen) | One-way server push over plain HTTP, auto-reconnect, resume by event id | One direction only (commands are normal POSTs) |
+| WebSocket | Two-way | Not needed; more to manage |
+
+### Python modelling
+
+| Option | Used for |
+|---|---|
+| **Pydantic BaseModel** | Anything validated: LLM output, plans, API bodies, settings |
+| **TypedDict** | The LangGraph state: plain data that must be checkpointed as-is |
+| **dataclass** | Internal value objects without validation (results, dependencies) |
+| dict | Only at boundaries (JSON payloads) before validation |
+
+### Infrastructure and testing
+
+- **Background work:** an asyncio task per run inside the API is enough for one user; a job queue
+  with workers (Celery, RQ, Arq) is the next step for many users (see the scalability outlook).
+- **Local vs distributed:** everything runs on one machine except the sandbox. Docker Compose or
+  Kubernetes would matter only for a hosted, multi-user version.
+- **pytest vs unittest:** pytest's fixtures, parametrisation and plain `assert` keep 329 tests
+  short; unittest would add boilerplate.
 
 ## Scalability outlook
 

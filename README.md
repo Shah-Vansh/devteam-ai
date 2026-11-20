@@ -1,131 +1,168 @@
 # DevTeam AI
 
-Autonomous multi-agent software engineering platform. A plain-English requirement is turned into a planned, generated, reviewed and tested Python FastAPI project by four specialised agents (Planner, Developer, Reviewer, Tester) coordinated by a LangGraph workflow, with custom MCP servers for workspace and Git access, sandboxed test execution and human approval at every risky step.
+A multi-agent system that turns a plain-English requirement into a working, tested and committed
+Python FastAPI service. Four specialised agents (Planner, Developer, Reviewer, Tester) are
+coordinated by a LangGraph workflow. They reach files and Git only through custom MCP servers,
+generated code runs only in a remote microVM sandbox, and a human approves every risky step:
+running code and committing it.
 
-## Status
+Status: complete (10 phases); see [PROGRESS.md](PROGRESS.md).
 
-Phase 9 of 10 complete.
+## What a run does
 
-- **Planner agent** turns a requirement into a validated project plan. On a 10-requirement benchmark it produced valid plans 10/10 times and asked clarifying questions only where requirements were ambiguous.
-- **Developer and Reviewer agents** turn a plan into files written through MCP, then review them with static analysis (Python parser, ruff, bandit) plus an LLM reviewer. High-severity findings trigger at most two revisions.
-- **Tester agent and sandbox execution** write pytest tests and run them in a fresh E2B microVM: packages installed from a pinned allow-list, internet switched off, results parsed from JUnit XML. Failures are triaged as bad code, bad test or environment and fixed in at most two rounds. Without a sandbox key, tests are reported as not executed, never as passed.
-- **LangGraph workflow** runs every step as a graph node with bounded loops, pauses for a human (answering the Planner's questions, approving test execution) with `interrupt()`, and saves a checkpoint after every step in SQLite, so a paused run can be resumed later from another process. Every run ends in a defined state.
-- **Git MCP server and commit approval**: after tests pass, the run pauses to show the files and commit message. The commit only happens with a one-time token signed after your approval and bound to exactly the files you saw; anything edited afterwards blocks it. Runs end in `SUCCESS` with a local commit, or `NOT_COMMITTED`.
-- **HTTP API and database**: FastAPI with 15 endpoints to create projects, start runs, answer approvals, cancel, and read files, reviews, tests and reports; live progress as Server-Sent Events; SQLite with SQLAlchemy and Alembic migrations. Runs continue in the background, and a paused run can be approved even after the API restarts.
-- **Dashboard** (React + TypeScript + Vite): start a project, watch the four agents work live, answer the approvals (questions, test execution, commit) in the browser, then browse the generated files with review findings and git history, and read the report.
-- **Evaluation and hardening**: an end-to-end benchmark of 10 requirements (first results: all easy cases reached SUCCESS with 26/26 generated tests passing), security tests mapped to each threat, Playwright end-to-end tests, and GitHub Actions CI for backend and frontend.
-- **Filesystem MCP server** provides workspace-locked file tools over stdio. Path traversal, Windows device names, drive letters, UNC paths and symlink or junction escapes are refused, and agents only get a read-only view.
+1. **Plan:** the Planner turns the requirement into a validated plan: files, tasks, assumptions,
+   and up to three questions where the requirement is genuinely ambiguous. You can answer them or
+   keep the Planner's assumptions.
+2. **Develop:** the Developer writes the planned files in small batches. Workflow code writes them
+   through the Filesystem MCP server; the agent itself has no write access.
+3. **Review:** static analysis (Python's parser, ruff, bandit, a dependency check) and an LLM
+   reviewer check the code against the plan. High-severity findings trigger at most two revisions.
+   The verdict is computed from the findings, so code cannot talk the reviewer into a pass.
+4. **Test:** the Tester writes pytest tests. **You approve** sending them to the sandbox: a fresh
+   E2B microVM, packages from a pinned allow-list, internet switched off before the tests run.
+5. **Fix:** failures are triaged as bad code, bad test or environment and sent to the right agent,
+   at most two rounds. Fixed code is reviewed again.
+6. **Commit:** **you approve** the files and message. The Git MCP server only commits with a
+   one-time token signed after your approval and bound to exactly the files you saw.
 
-Not done yet: the remaining benchmark cases (daily token quota) and packaging (setup script, demo). See `PROGRESS.md`.
+Every run ends in a defined state: `SUCCESS`, `NOT_COMMITTED`, `FAILED_REVIEW`, `FAILED_TESTS`,
+`NOT_EXECUTED`, `ERROR` or `CANCELLED`. Review status and test status are reported separately: a
+passed review never counts as passed tests.
 
-## Quick start
+## Results
 
-Requires Python 3.12+ (developed on 3.14) and Node 22+ for the dashboard.
+First end-to-end benchmark run (`gpt-oss-120b` on Groq, E2B sandbox), reported as measured:
+
+- 3 of the 5 cases that could run reached `SUCCESS`. All three easy requirements succeeded with
+  26/26 generated tests passing, each in about two minutes with 4–5 LLM calls.
+- One medium case failed its tests and then failed triage; one hit the free tier's daily token
+  limit. Cases 6–10 are not measured yet. Details: [docs/EVALUATION.md](docs/EVALUATION.md).
+- A run driven entirely from the dashboard (form, two approvals by click) passed 7/7 tests and
+  committed.
+
+Tests: 329 backend tests, 28 frontend unit tests and 3 Playwright end-to-end tests, all offline.
+GitHub Actions runs them on every push on Linux, with Python 3.12 and 3.14.
+
+## Quick start (Windows)
+
+Requires Python 3.12+, Node.js 22+ and git.
 
 ```powershell
-py -3.14 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e "backend[dev]"
-Copy-Item .env.example .env   # then fill in LLM_PROVIDER, LLM_API_KEY, LLM_MODEL
+git clone https://github.com/Shah-Vansh/devteam-ai.git
+cd devteam-ai
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 ```
 
-Run the tests (no network needed):
+The setup script checks the tools, creates `.venv`, installs the backend and dashboard, and
+creates `.env` from `.env.example`. Then add two keys to `.env`:
+
+- `LLM_API_KEY`: a Groq API key (https://console.groq.com/keys). Model and other defaults are
+  already set.
+- `E2B_API_KEY`: an E2B API key (https://e2b.dev/dashboard). Without it the system still runs, but
+  reports tests as `NOT_EXECUTED`, never as passed.
+
+Start the API and the dashboard (each in its own window; the dashboard opens in your browser):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\start.ps1
+```
+
+On Linux or macOS use `bash scripts/setup.sh`, then start `python -m app.api` in `backend/` and
+`npm run dev` in `frontend/`.
+
+## Using it
+
+**Dashboard** at http://localhost:5173: create a project and watch the four agents work live. You
+answer the approvals in the browser. Afterwards you can browse the generated files with review
+findings and git history, and read the report.
+
+**Command line**, from `backend/`:
+
+```powershell
+..\.venv\Scripts\python.exe -m app.cli build "Build a todo API with create, list and delete"
+..\.venv\Scripts\python.exe -m app.cli status <run-id>
+..\.venv\Scripts\python.exe -m app.cli resume <run-id>
+..\.venv\Scripts\python.exe -m app.cli plan "Build a todo API"
+..\.venv\Scripts\python.exe -m app.cli fs-demo
+```
+
+`build` asks at each pause; answering `later` leaves the run paused, and `resume` continues it,
+even in a new terminal. `fs-demo` starts the Filesystem MCP server and shows it refusing attack
+paths.
+
+**HTTP API** at http://127.0.0.1:8000, interactive docs at http://127.0.0.1:8000/docs.
+
+Generated projects are written to `workspaces/<project>-<id>/`, each with its own git history.
+Run records go to the database in `data/`.
+
+## Tests
 
 ```powershell
 cd backend
 ..\.venv\Scripts\python.exe -m pytest
-```
-
-Plan a project:
-
-```powershell
-cd backend
-..\.venv\Scripts\python.exe -m app.cli plan "Build a todo API with create, list and delete"
-```
-
-Plan, write, review and test a project (files go to `workspaces/`, run records to `data/runs/`; it asks before running tests in the sandbox):
-
-```powershell
-cd backend
-..\.venv\Scripts\python.exe -m app.cli build "Build a todo API with create, list and delete"
-```
-
-A run pauses to ask the Planner's questions, before running tests, and before committing. Type `later` to leave it paused, then:
-
-```powershell
-..\.venv\Scripts\python.exe -m app.cli status <run-id>
-..\.venv\Scripts\python.exe -m app.cli resume <run-id>
-```
-
-Start the dashboard (with the API running, open http://localhost:5173):
-
-```powershell
-cd frontend
-npm install
-npm run dev
-```
-
-Start the API (then open http://127.0.0.1:8000/docs):
-
-```powershell
-cd backend
-..\.venv\Scripts\python.exe -m app.api
-```
-
-Start the Filesystem MCP server and watch it refuse attack paths:
-
-```powershell
-cd backend
-..\.venv\Scripts\python.exe -m app.cli fs-demo
-```
-
-Run the end-to-end benchmark (uses Groq and E2B quota; results in `eval/results/`):
-
-```powershell
-cd backend
-..\.venv\Scripts\python.exe ..\eval\run_benchmark.py --reasoning-effort low
-```
-
-Frontend tests (unit, then end-to-end in the installed Microsoft Edge):
-
-```powershell
-cd frontend
+cd ..\frontend
 npm test
 npm run test:e2e
 ```
 
-Run the Planner benchmark:
+End-to-end tests use the installed Microsoft Edge locally and Chromium in CI. The live benchmark
+uses Groq and E2B quota: `..\.venv\Scripts\python.exe ..\eval\run_benchmark.py --reasoning-effort low`
+from `backend/`.
 
-```powershell
-.\.venv\Scripts\python.exe eval\run_planner_benchmark.py
+## Tech stack
+
+- **Agents and workflow:** LangGraph (StateGraph, `interrupt()`, SQLite checkpointer), Pydantic
+  structured output, a provider-agnostic LLM client (Groq `gpt-oss-120b` by default)
+- **Tools:** two MCP servers (filesystem, Git) on the official Python MCP SDK, over stdio
+- **Execution:** E2B microVMs; static analysis with `ast`, ruff and bandit
+- **Backend:** FastAPI, Server-Sent Events, SQLAlchemy 2.0, Alembic, SQLite
+- **Frontend:** React 19, TypeScript, Vite, React Router
+- **Testing:** pytest, Vitest and Testing Library, Playwright, GitHub Actions
+
+## Project layout
+
+```text
+backend/app/agents/        Planner, Developer, Reviewer, Tester and their prompts
+backend/app/workflow/      LangGraph graph, nodes and run state
+backend/app/mcp_servers/   Filesystem and Git MCP servers
+backend/app/mcp_clients/   Clients for them (agents get a read-only view)
+backend/app/execution/     Sandbox executors, package allow-list, constraints file
+backend/app/gitops/        Git operations and commit approval tokens
+backend/app/api/           FastAPI routes; services/ runs workflows in the background
+backend/app/db/            SQLAlchemy models; migrations in backend/migrations/
+frontend/src/              Dashboard: pages, components, hooks, typed API client
+eval/                      Benchmark requirements, runners and results
+docs/                      Design documents and architecture decision records
+scripts/                   Setup and start scripts
 ```
 
-## Planned stack
+## Security in brief
 
-- **Backend:** Python 3.14, FastAPI, Pydantic, SQLAlchemy, Alembic, SQLite
-- **Agents:** LangGraph, provider-agnostic LLM client (Groq to start)
-- **Tools:** custom MCP servers (filesystem, Git) built with the official Python MCP SDK
-- **Execution:** remote microVM sandbox for generated code (never runs on the host)
-- **Frontend:** React, TypeScript, Vite
-- **Testing:** pytest, Vitest, Playwright
+Generated code never runs on the host. Agents cannot write files, run commands or commit; workflow
+code does that through MCP servers with strict path rules. Commits need a signed one-time
+approval token. API keys never reach the sandbox, the MCP servers or API responses. The API only
+listens on 127.0.0.1. Threat model and the tests for each threat:
+[docs/SECURITY_DESIGN.md](docs/SECURITY_DESIGN.md).
+
+## Limitations
+
+- Single user and no authentication: a local tool, bound to localhost.
+- Generates Python FastAPI services only (in memory or SQLite).
+- Generated code, not secrets, is sent to the LLM provider and the sandbox provider.
+- LLM review and generated tests can miss bugs; review and tests are reported separately.
+- On free tiers, rate limits make larger projects slow and cap the number of runs per day.
 
 ## Documentation
 
-- [Project overview](docs/PROJECT_OVERVIEW.md)
-- [System architecture](docs/SYSTEM_ARCHITECTURE.md)
-- [Agent design](docs/AGENT_DESIGN.md)
-- [MCP architecture](docs/MCP_ARCHITECTURE.md)
-- [Execution sandbox](docs/EXECUTION_SANDBOX.md)
-- [Database schema](docs/DATABASE_SCHEMA.md)
-- [API design](docs/API_DESIGN.md)
-- [Security design](docs/SECURITY_DESIGN.md)
-- [Testing strategy](docs/TESTING_STRATEGY.md)
-- [Evaluation](docs/EVALUATION.md)
-- [Technology decisions](docs/TECHNOLOGY_DECISIONS.md)
-- [Development roadmap](docs/DEVELOPMENT_ROADMAP.md)
-- [Architecture decision records](docs/adr/)
+- [Project overview](docs/PROJECT_OVERVIEW.md) · [System architecture](docs/SYSTEM_ARCHITECTURE.md) · [Agent design](docs/AGENT_DESIGN.md)
+- [MCP architecture](docs/MCP_ARCHITECTURE.md) · [Execution sandbox](docs/EXECUTION_SANDBOX.md) · [Database schema](docs/DATABASE_SCHEMA.md) · [API design](docs/API_DESIGN.md)
+- [Security design](docs/SECURITY_DESIGN.md) · [Testing strategy](docs/TESTING_STRATEGY.md) · [Evaluation](docs/EVALUATION.md)
+- [Technology decisions](docs/TECHNOLOGY_DECISIONS.md) · [Architecture decision records](docs/adr/) · [Demo script](docs/DEMO.md)
+- [Development roadmap](docs/DEVELOPMENT_ROADMAP.md) · [Progress log](PROGRESS.md)
 
 ## Configuration
 
-All configuration lives in one `.env` file at the repository root, shared by backend and frontend. Copy `.env.example` to `.env` and fill in the keys.
-
-On Groq's free tier, set `LLM_REASONING_EFFORT=low`: it leaves more of the 8,000 tokens-per-minute budget for the generated code.
+All configuration lives in one `.env` at the repository root, shared by the backend, the MCP
+servers and the dashboard (only `VITE_` variables reach the browser). `.env.example` documents
+every setting. Limits such as `MAX_REVIEW_ROUNDS`, `MAX_FIX_ROUNDS` and `MAX_LLM_CALLS_PER_RUN`
+bound every run.

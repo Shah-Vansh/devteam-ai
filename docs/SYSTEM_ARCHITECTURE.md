@@ -1,7 +1,7 @@
 # System Architecture
 
-> Status: designed in Phase 0. Agents, MCP filesystem, sandbox and the LangGraph workflow
-> are built (Phases 1–5); Git (6), API and database (7) and the React dashboard (8).
+> Status: built. Agents, Filesystem MCP, sandbox and LangGraph workflow (Phases 1–5), Git MCP
+> (6), API and database (7), dashboard (8), evaluation and CI (9), packaging (10).
 
 ## Style
 
@@ -28,17 +28,20 @@ flowchart LR
   G --> CP[(data/checkpoints.db)]
 ```
 
-| Component | Responsibility | Folder (planned) |
+| Component | Responsibility | Folder |
 |---|---|---|
 | API | HTTP endpoints, SSE progress, approvals | `backend/app/api` |
-| Workflow | State, routing, loop limits, human pauses | `backend/app/graph` |
+| Services | Background runs, event stream, state-to-database sync | `backend/app/services` |
+| Workflow | State, routing, loop limits, human pauses | `backend/app/workflow` |
 | Agents | One LLM role each, validated output | `backend/app/agents` |
 | LLM client | Provider-agnostic calls, usage logging | `backend/app/llm` |
 | MCP clients | Connect to and call the MCP servers | `backend/app/mcp_clients` |
-| MCP servers | Workspace file tools, Git tools | `mcp_servers/` |
-| Static analysis | Parse, lint and security-scan without executing | `backend/app/analysis` |
+| MCP servers | Workspace file tools, Git tools | `backend/app/mcp_servers` |
+| Workspace and Git rules | Path rules, file operations, git commands, approval tokens | `backend/app/workspace`, `backend/app/gitops` |
+| Static analysis | Parse, lint, security-scan and outline without executing | `backend/app/analysis` |
 | Executor | Run tests in the sandbox or skip safely | `backend/app/execution` |
-| Persistence | SQLAlchemy models, Alembic migrations | `backend/app/db`, `backend/alembic` |
+| Persistence | SQLAlchemy models, Alembic migrations | `backend/app/db`, `backend/migrations` |
+| Evaluation | End-to-end benchmark | `backend/app/evaluation`, `eval/` |
 | Frontend | Dashboard | `frontend/` |
 
 ## Workflow

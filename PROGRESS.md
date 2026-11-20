@@ -12,7 +12,32 @@
 | 7 Backend + DB | Done (2026-11-20) |
 | 8 Frontend | Done (2026-11-20) |
 | 9 Evaluation + hardening | Done (2026-11-20) |
-| 10 Packaging + portfolio | Not started |
+| 10 Packaging + portfolio | Done (2026-11-20) |
+
+## Phase 10 — Packaging and portfolio
+
+Done:
+
+- `scripts/setup.ps1` (Windows PowerShell 5.1+): checks Python 3.12+, Node 22+ and git (skipping
+  broken Python launcher entries), creates `.venv`, installs backend and dashboard, creates `.env`
+  from the template without overwriting an existing one, and says which keys are missing.
+- `scripts/start.ps1`: starts the API and the dashboard in their own windows, waits for the API's
+  health endpoint, opens the dashboard. `scripts/setup.sh` for Linux and macOS.
+- `.env.example` ships the benchmark-chosen defaults (Groq, `gpt-oss-120b`, reasoning effort
+  low); a new user adds only `LLM_API_KEY` and `E2B_API_KEY`.
+- Final README (text only): what a run does, measured results, quick start, usage, tests, stack,
+  layout, security, limitations. `docs/DEMO.md`: a five-minute presentation script.
+- Docs pass: every status line now describes what is built; component folders corrected; the
+  technology comparisons left open in Phase 0 are written; the MCP document no longer promises an
+  automatic server restart that was not built.
+
+Verified on a fresh clone (new folder, no `.venv`, no `.env`): `setup.ps1` finished without
+errors, then 329/329 backend tests, 28/28 frontend tests and both type checks passed there.
+
+Not done (carried over, documented in README "Limitations" and EVALUATION):
+
+- Benchmark cases b05–b10 (provider quota).
+- Authentication, multiple users, automatic MCP server restart.
 
 ## Phase 9 — Evaluation and hardening
 

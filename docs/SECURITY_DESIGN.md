@@ -1,6 +1,6 @@
 # Security Design
 
-> Status: designed in Phase 0. Controls are implemented in the phases listed and verified in Phase 9.
+> Status: every control below is built and covered by tests; see [Security tests](#security-tests).
 
 ## Assets
 

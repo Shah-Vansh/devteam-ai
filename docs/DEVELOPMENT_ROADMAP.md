@@ -3,6 +3,9 @@
 Each phase ends with passing tests, updated docs and `PROGRESS.md`, and a review before the next
 phase starts. Effort is part-time.
 
+Status: all phases are complete (2026-11-20). The effort column is the original estimate; what
+each phase delivered, and what was verified live, is in [PROGRESS.md](../PROGRESS.md).
+
 | # | Phase | Build | Done when | Effort |
 |---|---|---|---|---|
 | 0 | Planning + spikes | Design docs, ADRs, sandbox spike, structured-output spike | Decisions justified; spikes answered their questions | 1.5–2 wk |

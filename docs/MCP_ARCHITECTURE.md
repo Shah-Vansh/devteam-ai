@@ -78,8 +78,9 @@ Rules:
 - Size limit per file and an allowed-extension list (`.py`, `.txt`, `.md`, `.toml`, `.cfg`,
   `.ini`, `.json`, `.yaml`).
 - Every result has one shape: `{ok, data}` or `{ok: false, error_code, message}`.
-- Planned for Phase 7: the FastAPI lifespan owns the connection, restarts a crashed server and
-  retries the call once. Until then each caller opens a connection with `async with`.
+- As built: the API's lifespan starts both servers once and owns the connections; the CLI and
+  the benchmark open them with `async with`. A server that dies mid-run is not restarted: the
+  run ends as `ERROR` with a reason (tested). Automatic restart is a possible improvement.
 
 ## Git MCP server
 

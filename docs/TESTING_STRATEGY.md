@@ -1,6 +1,6 @@
 # Testing Strategy
 
-> Status: planned. Each phase adds the tests for what it builds.
+> Status: built. 329 backend tests, 28 frontend unit tests, 3 Playwright tests; all run in CI.
 
 ## Principles
 

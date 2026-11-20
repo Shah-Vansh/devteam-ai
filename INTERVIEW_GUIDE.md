@@ -2,6 +2,30 @@
 
 Answers describe what is actually built. Planned parts are labelled as planned.
 
+## Phase 10 — Packaging and the whole project
+
+**Explain the project in two minutes.**
+You give a plain-English requirement for a small API. A LangGraph workflow runs four agents:
+Planner, Developer, Reviewer, Tester. The agents only return data; workflow code writes files and
+commits through two MCP servers I built, with strict path rules and a signed one-time token for
+commits. Static analysis plus an LLM review gate the code, generated tests run in an E2B microVM
+with the internet off, failures are triaged and fixed in bounded rounds, and a human approves
+running the code and committing it. A FastAPI backend with SQLite runs this in the background
+with live Server-Sent Events, and a React dashboard drives it.
+
+**What are you most proud of technically?**
+The trust boundaries: agents cannot write, execute or commit; the commit token is bound to the
+exact files approved; and the bug I caught where LangGraph re-runs a paused node, which would have
+made the approval cover edits made during the pause.
+
+**What would you do next?**
+Finish the benchmark on a paid tier, add authentication and a job queue for several users, restart
+crashed MCP servers automatically, and support more project types than FastAPI.
+
+**How does someone run it?**
+Clone, run `scripts\setup.ps1`, add a Groq key and an E2B key to `.env`, run `scripts\start.ps1`.
+I checked this on a fresh clone.
+
 ## Phase 9 — Evaluation and hardening
 
 **Does it actually work? Give numbers.**
