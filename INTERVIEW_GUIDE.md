@@ -2,6 +2,32 @@
 
 Answers describe what is actually built. Planned parts are labelled as planned.
 
+## Phase 8 — React dashboard
+
+**What does the dashboard do?**
+Four screens: start a project; watch a run live (four agent cards, counters, live feed) and answer
+its approvals; browse the generated files with review findings and git history; and read the
+report, where review status and test status are deliberately shown separately.
+
+**How does live progress work in the browser?**
+An `EventSource` on the run's SSE endpoint inside a custom hook. Event ids let the browser resume
+after a reconnect; the hook ignores replays and closes the stream after `finished`. One layout
+component owns the stream for all tabs of a run.
+
+**How do you keep the frontend and backend in sync?**
+A typed client: TypeScript interfaces mirror the Pydantic response models, and errors are
+parsed from the API's single error shape into an `ApiError` with a stable code.
+
+**How did you test it?**
+28 Vitest tests with Testing Library: pure logic (agent cards), the API client against a stubbed
+`fetch`, the approval panel by clicking like a user, and the event hook with a fake `EventSource`.
+Then a real run in the browser: form, live view, two approvals by click, 7/7 tests passed in the
+sandbox, committed.
+
+**Something you learned?**
+A character counter inside a `<label>` changes the field's accessible name. A test that finds the
+field by its label, as a screen reader would, caught it.
+
 ## Phase 7 — Backend API and database
 
 **How does a long-running AI workflow fit into an HTTP API?**

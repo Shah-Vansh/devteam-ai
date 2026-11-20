@@ -1,7 +1,7 @@
 # System Architecture
 
 > Status: designed in Phase 0. Agents, MCP filesystem, sandbox and the LangGraph workflow
-> are built (Phases 1–5); Git, API, database and dashboard are planned.
+> are built (Phases 1–5); Git (6), API and database (7) and the React dashboard (8).
 
 ## Style
 
@@ -127,6 +127,23 @@ Every node also has an edge to the end: a terminal status (`NOT_COMMITTED`, `FAI
 The frontend starts runs and sends approvals over REST, and receives progress over Server-Sent
 Events (`GET /api/runs/{id}/events`). See [API_DESIGN](API_DESIGN.md) and
 [ADR 0008](adr/0008-sse-for-progress.md).
+
+### Dashboard (Phase 8)
+
+Code: `frontend/` (React 19, TypeScript 7, Vite 8, React Router 7, plain CSS).
+
+| Screen | Route | Shows |
+|---|---|---|
+| Projects | `/` | New project form (name, requirement, type fixed to FastAPI) that creates the project and starts a run; projects with their latest runs |
+| Run: Live | `/runs/:id` | Four agent cards (state, steps, latest line), counters, approval panel (clarify / execute / commit), live event feed, cancel |
+| Run: Workspace | `/runs/:id/workspace` | File tree with finding counts, code viewer with line numbers and flagged lines, findings per file, git status and history |
+| Run: Report | `/runs/:id/report` | Verdict; review status and test status shown separately; test cases; triage; latest review; LLM usage per agent; steps |
+
+- `RunLayout` holds one event stream and one copy of the run for all three run tabs.
+- `useRunEvents` wraps `EventSource`: it de-duplicates replayed events by id and closes the
+  stream after `finished` (otherwise the browser would reconnect and replay).
+- `api/client.ts` is a typed client; every API error becomes an `ApiError` with the API's code.
+- The frontend reads the root `.env` (`envDir: ".."`); only `VITE_API_BASE_URL` is used.
 
 ## Configuration
 

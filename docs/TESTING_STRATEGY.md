@@ -19,8 +19,8 @@
 | Executor | `StaticOnlyExecutor` always; `E2BExecutor` with a fake sandbox that records the order of steps (install, internet off, pytest, kill); live checks run by hand | pytest | 4 |
 | Workflow | Full graph with a fake LLM; every terminal state reachable; limits enforced; pause/resume | pytest | 5 |
 | API | Endpoints against a temporary SQLite database | pytest + FastAPI TestClient | 7 |
-| Frontend | Components and hooks | Vitest | 8 |
-| End-to-end | Create project → run → approvals → report, with a mocked backend | Playwright | 8 |
+| Frontend | Agent-card logic, typed API client, approval panel, event-stream hook (fake `EventSource`), new-project form | Vitest + Testing Library (jsdom) | 8 (built, 28 tests) |
+| End-to-end | Create project → run → approvals → report, with a mocked backend | Playwright | 9 (moved from 8: needs a browser download; checked live in Phase 8 instead) |
 | Security | Traversal, oversized files, commit without token, injection requirement, timeouts | pytest | 9 |
 
 ## CI

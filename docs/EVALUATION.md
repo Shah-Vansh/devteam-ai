@@ -95,6 +95,15 @@ Spot checks, not the full benchmark (that needs Phase 4 test results).
 | Database after the run | Run, 2 approvals (commit row holds only a token hash), test run with 8 cases, 6 tracked files, 4 LLM-call rows, 9 agent steps |
 | Event stream | 11 `log`, 9 `step`, 2 `approval_required`, 2 `approval_decided`, 1 `finished` |
 
+### Dashboard (Phase 8, 2026-11-20, live)
+
+| Check | Result |
+|---|---|
+| Dashboard against the real API (Vite dev server and `python -m app.api`) | Project list with earlier runs and their statuses; health line (e2b sandbox, model) |
+| New run started from the form and approved by clicking (notes API, `gpt-oss-120b`) | Live: SSE connected, agent cards switched to *working* and *done*, approval panels for execution and commit. `SUCCESS`: E2B 7/7 tests passed, commit `ac22432`, 4 LLM calls, about 11,000 tokens |
+| Workspace and Report tabs | File tree with finding counts, code viewer, git status and history; review and test status shown separately, every test case, LLM usage per agent, steps |
+| Narrow window and dark mode | Agent cards in two columns; dark theme readable |
+
 Free-tier limits (Groq `gpt-oss-120b`): 8,000 tokens per minute and 200,000 tokens per day. A hard
 requirement uses roughly 30,000–60,000 tokens per run, so only a few such runs fit in a day.
 

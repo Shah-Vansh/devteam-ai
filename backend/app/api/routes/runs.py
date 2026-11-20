@@ -16,6 +16,9 @@ from app.api.schemas import (
     Decision,
     FileContent,
     FileEntry,
+    GitCommit,
+    GitFile,
+    GitInfo,
     Report,
     ReviewOut,
     RunOut,
@@ -24,6 +27,7 @@ from app.api.schemas import (
 )
 from app.db.models import Approval, Run
 from app.mcp_clients.filesystem import FilesystemToolError
+from app.mcp_clients.git import GitToolError
 from app.services.errors import ServiceError, not_found
 from app.services.events import EventBroker
 from app.services.run_manager import RunManager
@@ -117,6 +121,29 @@ async def read_run_file(
         status_code = 404 if exc.code in ("FILE_NOT_FOUND", "WORKSPACE_NOT_FOUND") else 400
         raise ServiceError(status_code, exc.code, exc.message) from None
     return FileContent(path=path, content=content)
+
+
+@router.get("/runs/{run_id}/git")
+async def run_git(run_id: str, session: SessionDep, runtime: RuntimeDep) -> GitInfo:
+    """Repository status and history of the run's workspace (read-only Git tools)."""
+    run = load_run(session, run_id)
+    empty = GitInfo(initialized=False, branch=None, clean=None, files=[], commits=[])
+    if not run.workspace:
+        return empty
+    try:
+        status_data = await runtime.git.get_git_status(run.workspace)
+        commits = await runtime.git.get_commit_history(run.workspace, limit=20)
+    except GitToolError as exc:
+        if exc.code in ("NOT_A_REPOSITORY", "WORKSPACE_NOT_FOUND"):
+            return empty
+        raise ServiceError(400, exc.code, exc.message) from None
+    return GitInfo(
+        initialized=True,
+        branch=status_data["branch"],
+        clean=status_data["clean"],
+        files=[GitFile(**f) for f in status_data["files"]],
+        commits=[GitCommit(**c) for c in commits],
+    )
 
 
 @router.get("/runs/{run_id}/reviews")

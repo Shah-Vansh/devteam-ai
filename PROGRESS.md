@@ -10,9 +10,45 @@
 | 5 LangGraph | Done (2026-11-19) |
 | 6 Git MCP | Done (2026-11-20) |
 | 7 Backend + DB | Done (2026-11-20) |
-| 8 Frontend | Not started |
+| 8 Frontend | Done (2026-11-20) |
 | 9 Evaluation + hardening | Not started |
 | 10 Packaging + portfolio | Not started |
+
+## Phase 8 — React dashboard
+
+Done:
+
+- `frontend/`: Vite 8 + React 19 + TypeScript 7 (strict) + React Router 7, plain CSS with light
+  and dark themes and a narrow-window layout.
+- Four screens: Projects (new project form + list), Run Live (agent cards, counters, approval
+  panel, live feed, cancel), Workspace (files, code, findings, git), Report (verdict, review and
+  tests separately, triage, LLM usage, steps).
+- Typed API client with one error class; `useAsync` and `useRunEvents` hooks.
+- Backend: `GET /api/runs/{id}/git` (status and history through the Git server's read tools).
+- 28 frontend tests (Vitest + Testing Library); backend still 308 tests.
+
+Live verification:
+
+| Check | Result |
+|---|---|
+| Dashboard against the real API (Vite dev server and `python -m app.api`) | Project list with earlier runs and their statuses; health line (e2b sandbox, model) |
+| New run started from the form and approved by clicking (notes API, `gpt-oss-120b`) | Live: SSE connected, agent cards switched to *working* and *done*, approval panels for execution and commit. `SUCCESS`: E2B 7/7 tests passed, commit `ac22432`, 4 LLM calls, about 11,000 tokens |
+| Workspace and Report tabs | File tree with finding counts, code viewer, git status and history; review and test status shown separately, every test case, LLM usage per agent, steps |
+| Narrow window and dark mode | Agent cards in two columns; dark theme readable |
+
+Issues found and fixed:
+
+- The requirement field's character counter was inside its `<label>`, so its accessible name
+  became "Requirement 0 / 4000" (found by a test that looks fields up by label, as a screen
+  reader would).
+- jsdom 31 needs Node 22.22+; this machine has 22.13, so jsdom is pinned at 29.
+- Steps that log nothing (`prepare_commit`) showed the previous step's line as their summary.
+- The git panel labelled a clean repository "passed"; it now says "clean".
+
+Not done (by design or carried over):
+
+- Playwright end-to-end tests move to Phase 9 with CI.
+- No authentication (single-user, local).
 
 ## Phase 7 — Backend API and database
 

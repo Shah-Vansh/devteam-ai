@@ -1,5 +1,35 @@
 # Learning Notes
 
+## Phase 8 — React dashboard
+
+### Components, props, state
+Each screen is a component; data flows down as props (`ApprovalPanel` gets the approval and an
+`onDecide` function) and user actions flow back up through those functions. Local `useState`
+holds form input; the run itself comes from the API.
+
+### Custom hooks
+`useAsync` packages "load, show loading, show error, reload" once. `useRunEvents` packages the
+event stream: open, listen, de-duplicate, close. Screens stay about what they show.
+
+### One stream for several tabs
+`RunLayout` opens the stream and loads the run once; the Live, Workspace and Report tabs read
+them through the router's outlet context. Switching tabs does not reconnect.
+
+### Typed API client
+TypeScript interfaces mirror the backend's response models, and every error becomes an
+`ApiError` with the API's code, so screens can react to `LLM_NOT_CONFIGURED` or
+`RUN_ALREADY_ACTIVE` specifically.
+
+### Tests that use the page like a person
+Testing Library finds fields by their label and buttons by their text, like a screen reader. That
+is how the badly labelled requirement field was found.
+
+### Checkpoint questions
+1. Why does `useRunEvents` close the `EventSource` after `finished`?
+2. Why does `RunLayout`, not each tab, own the event stream?
+3. What does `useAsync` do to avoid showing an old answer after the screen changed?
+4. Why was the requirement field's character counter moved out of its label?
+
 ## Phase 7 — Backend API and database
 
 ### Two databases, two jobs

@@ -200,6 +200,9 @@ class RunManager:
                         finished_at=utcnow(),
                     )
                 )
+            # A step that logs nothing (a pause, prepare_commit) must not repeat the
+            # previous step's line as its own summary.
+            last_message["text"] = ""
             self.events.publish(
                 run_id, "step", {"node": node, "status": state.get("status", "RUNNING")}
             )

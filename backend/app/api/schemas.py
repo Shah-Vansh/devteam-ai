@@ -157,6 +157,26 @@ class Decision(BaseModel):
     message: str | None = Field(default=None, max_length=2000)  # commit message override
 
 
+class GitFile(BaseModel):
+    status: str
+    path: str
+
+
+class GitCommit(BaseModel):
+    commit: str
+    author: str
+    date: str
+    subject: str
+
+
+class GitInfo(BaseModel):
+    initialized: bool
+    branch: str | None
+    clean: bool | None
+    files: list[GitFile]
+    commits: list[GitCommit]
+
+
 class Health(BaseModel):
     status: Literal["ok"]
     executor: str

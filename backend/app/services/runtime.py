@@ -30,8 +30,10 @@ DepsFactory = Callable[[Callable[[str], None]], WorkflowDeps]
 
 @dataclass
 class Runtime:
+    # The API uses `fs` and `git` only for reads (file listing, status, history).
     graph: CompiledStateGraph
     fs: FilesystemClient
+    git: GitClient
     make_deps: DepsFactory | None  # None when the LLM is not configured
     executor_name: str
     model: str | None
@@ -75,6 +77,7 @@ async def real_runtime(settings: Settings) -> AsyncIterator[Runtime]:
         yield Runtime(
             graph=build_graph().compile(checkpointer=saver),
             fs=fs,
+            git=git,
             make_deps=make_deps if llm is not None else None,
             executor_name=executor.name,
             model=settings.llm_model or None,

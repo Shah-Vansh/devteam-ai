@@ -34,6 +34,9 @@
 | Runtime context | Objects passed to nodes on each invocation but never checkpointed |
 | HMAC | A signature made with a secret key; only holders of the key can create a valid one |
 | SSE | Server-Sent Events: a one-way HTTP stream of events from server to browser |
+| EventSource | The browser API that reads an SSE stream and reconnects on its own |
+| Custom hook | A React function (`useSomething`) that packages state and effects for reuse |
+| Accessible name | What assistive technology announces for a control, usually its label |
 | Migration | A versioned script that changes the database schema (Alembic) |
 | Lifespan | Code FastAPI runs once at startup and shutdown (here: migrations, MCP servers) |
 | Dependency injection | FastAPI passes shared objects (database session, run manager) to endpoints |

@@ -4,7 +4,7 @@ Autonomous multi-agent software engineering platform. A plain-English requiremen
 
 ## Status
 
-Phase 7 of 10 complete.
+Phase 8 of 10 complete.
 
 - **Planner agent** turns a requirement into a validated project plan. On a 10-requirement benchmark it produced valid plans 10/10 times and asked clarifying questions only where requirements were ambiguous.
 - **Developer and Reviewer agents** turn a plan into files written through MCP, then review them with static analysis (Python parser, ruff, bandit) plus an LLM reviewer. High-severity findings trigger at most two revisions.
@@ -12,13 +12,14 @@ Phase 7 of 10 complete.
 - **LangGraph workflow** runs every step as a graph node with bounded loops, pauses for a human (answering the Planner's questions, approving test execution) with `interrupt()`, and saves a checkpoint after every step in SQLite, so a paused run can be resumed later from another process. Every run ends in a defined state.
 - **Git MCP server and commit approval**: after tests pass, the run pauses to show the files and commit message. The commit only happens with a one-time token signed after your approval and bound to exactly the files you saw; anything edited afterwards blocks it. Runs end in `SUCCESS` with a local commit, or `NOT_COMMITTED`.
 - **HTTP API and database**: FastAPI with 15 endpoints to create projects, start runs, answer approvals, cancel, and read files, reviews, tests and reports; live progress as Server-Sent Events; SQLite with SQLAlchemy and Alembic migrations. Runs continue in the background, and a paused run can be approved even after the API restarts.
+- **Dashboard** (React + TypeScript + Vite): start a project, watch the four agents work live, answer the approvals (questions, test execution, commit) in the browser, then browse the generated files with review findings and git history, and read the report.
 - **Filesystem MCP server** provides workspace-locked file tools over stdio. Path traversal, Windows device names, drive letters, UNC paths and symlink or junction escapes are refused, and agents only get a read-only view.
 
-Not built yet: the dashboard (React). See `PROGRESS.md`.
+Not built yet: evaluation runs on the full benchmark, CI and packaging. See `PROGRESS.md`.
 
 ## Quick start
 
-Requires Python 3.12+ (developed on 3.14).
+Requires Python 3.12+ (developed on 3.14) and Node 22+ for the dashboard.
 
 ```powershell
 py -3.14 -m venv .venv
@@ -52,6 +53,14 @@ A run pauses to ask the Planner's questions, before running tests, and before co
 ```powershell
 ..\.venv\Scripts\python.exe -m app.cli status <run-id>
 ..\.venv\Scripts\python.exe -m app.cli resume <run-id>
+```
+
+Start the dashboard (with the API running, open http://localhost:5173):
+
+```powershell
+cd frontend
+npm install
+npm run dev
 ```
 
 Start the API (then open http://127.0.0.1:8000/docs):

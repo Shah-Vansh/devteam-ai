@@ -91,6 +91,7 @@ def runtime_factory(llm, executor, *, configured=True):
             yield Runtime(
                 graph=build_graph().compile(checkpointer=saver),
                 fs=fs,
+                git=git,
                 make_deps=make_deps if configured else None,
                 executor_name=executor.name,
                 model="fake-model",
@@ -204,9 +205,14 @@ def test_full_run_with_two_approvals_ends_in_a_commit(tmp_path, todo_plan_data, 
         run = wait_for(client, run_id, "PAUSED")
         assert run["pending_approval"]["kind"] == "commit"
         assert "tests/test_todos.py" in run["pending_approval"]["payload"]["files"]
+        assert client.get(f"/api/runs/{run_id}/git").json()["initialized"] is False
 
         decide(client, run, message="First version of the todo API")
         run = wait_for(client, run_id, "SUCCESS")
+        git_info = client.get(f"/api/runs/{run_id}/git").json()
+        assert git_info["initialized"] and git_info["clean"] and git_info["branch"] == "main"
+        assert git_info["commits"][0]["subject"] == "First version of the todo API"
+        assert git_info["commits"][0]["commit"] == run["commit_sha"]
 
         reviews = client.get(f"/api/runs/{run_id}/reviews").json()
         tests = client.get(f"/api/runs/{run_id}/tests").json()
@@ -231,6 +237,9 @@ def test_full_run_with_two_approvals_ends_in_a_commit(tmp_path, todo_plan_data, 
     ]  # fmt: skip
     assert [s["agent"] for s in report["steps"]][:3] == ["plan", "develop", "review"]
     assert report["steps"][-1]["agent"] == "commit"
+    summaries = {s["agent"]: s["summary"] for s in report["steps"]}
+    assert summaries["prepare_commit"] == ""  # found live: it repeated the previous line
+    assert summaries["commit"].startswith("committed ")
 
     db = Database(make_settings(tmp_path).database_url)
     with db.session() as session:
