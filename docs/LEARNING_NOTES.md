@@ -1,5 +1,35 @@
 # Learning Notes
 
+## Phase 7 — Backend API and database
+
+### Two databases, two jobs
+LangGraph's checkpoint database is the run's working memory: exact, but opaque. The application
+database is the record the API and dashboard query: reviews, findings, test cases, approvals and
+LLM calls as rows. A sync after every node copies one into the other, adding only what is missing.
+
+### Background work in a web server
+Starting a run returns 202 immediately; an asyncio task drives the graph. A pause ends the task;
+approving starts a new task that resumes from the checkpoint. Nothing waits in memory, which is
+why approvals survive restarts.
+
+### Server-Sent Events
+A one-way stream over plain HTTP: `event:` and `data:` lines. Simpler than WebSockets when only the
+server talks. Event ids plus `Last-Event-ID` let a browser reconnect without missing anything.
+
+### Migrations
+Alembic turns model changes into versioned scripts. The API applies them at startup, and a test
+compares the migrated schema with the models, so a forgotten migration fails the build.
+
+### When cleanup runs
+FastAPI runs the code after `yield` in a dependency after the response has been sent. A commit
+placed there raced the client's next request. Writes now commit before returning.
+
+### Checkpoint questions
+1. Why does starting a run return 202 and not 201 or 200?
+2. Why is the run's state stored twice (checkpoint and tables), and which one wins?
+3. What happens to a paused run when the API restarts, and to one that was mid-step?
+4. Why did committing in the session dependency's cleanup cause `PROJECT_NOT_FOUND`?
+
 ## Phase 6 — Git MCP server and commit approval
 
 ### Approval as a credential

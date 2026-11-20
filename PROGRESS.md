@@ -9,10 +9,49 @@
 | 4 Execution + Tester | Done (2026-11-19) |
 | 5 LangGraph | Done (2026-11-19) |
 | 6 Git MCP | Done (2026-11-20) |
-| 7 Backend + DB | Not started |
+| 7 Backend + DB | Done (2026-11-20) |
 | 8 Frontend | Not started |
 | 9 Evaluation + hardening | Not started |
 | 10 Packaging + portfolio | Not started |
+
+## Phase 7 — Backend API and database
+
+Done:
+
+- `app/db/`: SQLAlchemy 2.0 models for the 10 tables, sessions (SQLite with foreign keys and
+  WAL), Alembic migration `0001`, applied at startup.
+- `app/services/`: `RunManager` (background runs, approvals, cancel, restart recovery),
+  `EventBroker` (per-run event history and live subscribers), idempotent state-to-database sync,
+  `Runtime` (graph with SQLite checkpointer and MCP clients for the API's lifetime).
+- `app/api/`: FastAPI app with the 15 documented endpoints, one error format, request ids,
+  CORS, `python -m app.api` on 127.0.0.1:8000.
+- Workflow: `advance` streams node updates (used by the API and the CLI); each LLM call is logged
+  in the state; the commit token's hash is kept for the `approvals` table.
+- 308 tests in total (13 new API tests: full run over HTTP, approvals, cancel while paused and
+  while running, event replay, restart with a paused run, crash recovery, migrations vs models).
+
+Live verification:
+
+| Check | Result |
+|---|---|
+| API startup | Migration `0001` applied to `data/devteam.db`; Filesystem and Git MCP servers started; `/api/health`: executor e2b, model gpt-oss-120b, git available |
+| Run driven over HTTP (todo API, `gpt-oss-120b`) | `SUCCESS` in 64 s: plan, develop, review (pass), tests written, execution approved via `/api/approvals`, E2B 8/8 passed, commit approved, commit `234e7e8`; 4 LLM calls, about 12,000 tokens |
+| Database after the run | Run, 2 approvals (commit row holds only a token hash), test run with 8 cases, 6 tracked files, 4 LLM-call rows, 9 agent steps |
+| Event stream | 11 `log`, 9 `step`, 2 `approval_required`, 2 `approval_decided`, 1 `finished` |
+
+Issues found by the live run and fixed:
+
+- The request's database session committed during FastAPI's dependency cleanup, which runs after
+  the response is sent; starting a run right after creating its project returned
+  `PROJECT_NOT_FOUND`. Writes now commit before responding (regression test added).
+- A large structured answer (a test suite) was rejected by the provider's schema check twice in a
+  row; invalid output is now retried twice instead of once.
+
+Not done (by design or carried over):
+
+- No authentication (single-user, bound to localhost).
+- One active run per project; several projects can run at once and share the MCP connections.
+- Runs that were mid-step when the API stopped are marked `ERROR`, not resumed automatically.
 
 ## Phase 6 — Git MCP server and commit approval
 

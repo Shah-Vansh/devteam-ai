@@ -1,6 +1,7 @@
 # API Design
 
-> Status: designed in Phase 0, built in Phase 7.
+> Status: built in Phase 7 (`backend/app/api/`). Start with `python -m app.api`;
+> interactive docs at `http://127.0.0.1:8000/docs`.
 
 Base URL: `http://127.0.0.1:8000` (`BACKEND_HOST`, `BACKEND_PORT`). JSON everywhere except SSE.
 v1 has no authentication: it is a single-user tool bound to localhost (documented limitation).
@@ -66,6 +67,27 @@ data: {"approval_id": "apr_07", "kind": "execute"}
 event: finished
 data: {"status": "SUCCESS"}
 ```
+
+## As built (Phase 7)
+
+- Runs are executed by `RunManager` (`backend/app/services/run_manager.py`): one asyncio task
+  per active run drives the LangGraph graph. After every node the state is synced into the
+  database and a `step` event is published. A pause creates a pending approval;
+  `POST /api/approvals/{id}` resumes the run from its checkpoint in a new task, so approvals also
+  work after the API restarts.
+- Run statuses in the API: `RUNNING`, `PAUSED` (waiting for an approval) and the workflow's
+  terminal states. Runs left `RUNNING` by a crash are marked `ERROR` at startup.
+- Decisions: `{"decision": "approve" | "reject" | "cancel", "answers": [...], "message": "..."}`.
+  For a clarification, `reject` keeps the Planner's assumptions; for a commit, `message` replaces
+  the proposed commit message.
+- SSE events: `log` (progress line), `step` (node finished), `approval_required`,
+  `approval_decided`, `finished`. Events carry ids; reconnecting with `Last-Event-ID` resumes. A
+  run whose events are no longer in memory (after a restart) is described from the database.
+- File endpoints read through the Filesystem MCP server's read-only view, so path rules
+  (traversal, device names, ...) are enforced by the same code as for agents.
+- `GET /api/health` also reports whether the LLM is configured; starting a run without it gives
+  `503 LLM_NOT_CONFIGURED`.
+- Every response has an `X-Request-ID` header; unexpected errors log it and return only it.
 
 ## Errors
 

@@ -55,7 +55,9 @@ class OpenAICompatibleClient:
         base_url: str | None = None,
         timeout_seconds: float = 60.0,
         max_retries: int = 3,
-        validation_retries: int = 1,
+        # Two retries for invalid output: in live runs a large answer (a test suite) was
+        # rejected by the provider's schema check twice in a row, then would likely pass.
+        validation_retries: int = 2,
         max_output_tokens: int | None = None,
         reasoning_effort: str | None = None,
         sdk_client: Any | None = None,

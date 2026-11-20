@@ -2,6 +2,33 @@
 
 Answers describe what is actually built. Planned parts are labelled as planned.
 
+## Phase 7 — Backend API and database
+
+**How does a long-running AI workflow fit into an HTTP API?**
+`POST /runs` returns 202 with a run id and an asyncio task drives the LangGraph graph in the
+background. Clients follow it through `GET /runs/{id}` or a Server-Sent Events stream. When the
+graph pauses for a human, the run becomes `PAUSED` with a pending approval; answering it starts a
+new task that resumes from the SQLite checkpoint, even after an API restart.
+
+**Why both a checkpoint database and an application database?**
+The checkpoint is LangGraph's exact working state, but it is not queryable. The application
+tables hold reviews, findings, test cases, approvals and LLM calls as rows for the API and the
+dashboard. A sync after every node keeps them in step and is safe to repeat.
+
+**Why SSE and not WebSockets?**
+Progress only flows from server to browser. SSE is plain HTTP, reconnects on its own and resumes
+from the last event id. Commands such as approve or cancel are ordinary POST requests.
+
+**A bug you found in this phase?**
+Creating a project and immediately starting a run returned "project not found". The session
+dependency committed in its cleanup, which FastAPI runs after the response is sent, so the next
+request could arrive first. Writes now commit before the response; a test checks it.
+
+**Show it working.**
+A live run driven only through the API: plan, code, review, tests written, execution approved
+through `/api/approvals`, 8/8 tests passed in E2B, commit approved, committed. 64 seconds, 4 LLM
+calls, every step in the database and in the event stream.
+
 ## Phase 6 — Git MCP server and commit approval
 
 **How do you make sure nothing is committed without human approval?**

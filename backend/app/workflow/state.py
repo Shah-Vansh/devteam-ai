@@ -66,10 +66,12 @@ class RunState(TypedDict, total=False):
     commit_files: list[str]
     commit_message: str
     commit: dict[str, Any]  # {"commit", "branch", "files"} after SUCCESS
+    commit_token_hash: str  # SHA-256 of the approval token used (never the token)
     # cost
     llm_calls: int
     input_tokens: int
     output_tokens: int
+    llm_log: list[dict[str, Any]]  # one entry per LLM call: agent, model, tokens, latency
 
 
 @dataclass

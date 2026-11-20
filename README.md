@@ -4,16 +4,17 @@ Autonomous multi-agent software engineering platform. A plain-English requiremen
 
 ## Status
 
-Phase 6 of 10 complete.
+Phase 7 of 10 complete.
 
 - **Planner agent** turns a requirement into a validated project plan. On a 10-requirement benchmark it produced valid plans 10/10 times and asked clarifying questions only where requirements were ambiguous.
 - **Developer and Reviewer agents** turn a plan into files written through MCP, then review them with static analysis (Python parser, ruff, bandit) plus an LLM reviewer. High-severity findings trigger at most two revisions.
 - **Tester agent and sandbox execution** write pytest tests and run them in a fresh E2B microVM: packages installed from a pinned allow-list, internet switched off, results parsed from JUnit XML. Failures are triaged as bad code, bad test or environment and fixed in at most two rounds. Without a sandbox key, tests are reported as not executed, never as passed.
 - **LangGraph workflow** runs every step as a graph node with bounded loops, pauses for a human (answering the Planner's questions, approving test execution) with `interrupt()`, and saves a checkpoint after every step in SQLite, so a paused run can be resumed later from another process. Every run ends in a defined state.
 - **Git MCP server and commit approval**: after tests pass, the run pauses to show the files and commit message. The commit only happens with a one-time token signed after your approval and bound to exactly the files you saw; anything edited afterwards blocks it. Runs end in `SUCCESS` with a local commit, or `NOT_COMMITTED`.
+- **HTTP API and database**: FastAPI with 15 endpoints to create projects, start runs, answer approvals, cancel, and read files, reviews, tests and reports; live progress as Server-Sent Events; SQLite with SQLAlchemy and Alembic migrations. Runs continue in the background, and a paused run can be approved even after the API restarts.
 - **Filesystem MCP server** provides workspace-locked file tools over stdio. Path traversal, Windows device names, drive letters, UNC paths and symlink or junction escapes are refused, and agents only get a read-only view.
 
-Not built yet: API with database and the dashboard. See `PROGRESS.md`.
+Not built yet: the dashboard (React). See `PROGRESS.md`.
 
 ## Quick start
 
@@ -51,6 +52,13 @@ A run pauses to ask the Planner's questions, before running tests, and before co
 ```powershell
 ..\.venv\Scripts\python.exe -m app.cli status <run-id>
 ..\.venv\Scripts\python.exe -m app.cli resume <run-id>
+```
+
+Start the API (then open http://127.0.0.1:8000/docs):
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe -m app.api
 ```
 
 Start the Filesystem MCP server and watch it refuse attack paths:

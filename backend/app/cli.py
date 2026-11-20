@@ -14,11 +14,9 @@ import argparse
 import asyncio
 import json
 import logging
-import secrets
 import sys
 from collections.abc import Callable
 from contextlib import asynccontextmanager
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +40,7 @@ from app.schemas.plan import ProjectPlan
 from app.schemas.review import ReviewReport
 from app.workflow.graph import Step, advance, build_graph, current
 from app.workflow.state import WorkflowDeps
+from app.workflow.workspace_io import new_run_id
 
 logger = logging.getLogger("app.cli")
 
@@ -111,10 +110,6 @@ def _read_text_any(path: Path) -> str:
 
 
 # ---------- runs (LangGraph workflow) ----------
-
-
-def new_run_id() -> str:
-    return f"{datetime.now():%Y%m%d-%H%M%S}-{secrets.token_hex(2)}"
 
 
 def run_dir(run_id: str) -> Path:

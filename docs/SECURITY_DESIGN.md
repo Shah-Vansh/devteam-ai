@@ -37,7 +37,7 @@ flowchart LR
 | T14 | Content changed between approval and commit | Digest taken before the pause and checked by the Git server (`CONTENT_CHANGED`) | 6 (built) |
 | T9 | Malicious dependency in the sandbox | Small allow-list; every package pinned by a constraints file generated in the sandbox; unknown names never installed; `-r`/`--index-url` lines refused | 4 (built) |
 | T10 | Network abuse by generated code | Internet switched off before pytest runs; verified live by a test that tries to reach pypi.org | 4 (built) |
-| T11 | Local API abuse by other sites | Bind to `127.0.0.1`; CORS limited to the frontend origin | 7 |
+| T11 | Local API abuse by other sites | Bound to `127.0.0.1`; CORS limited to the frontend origin, GET/POST only; no authentication (single-user, documented); errors never return internals | 7 (built) |
 | T12 | Sandbox escape or provider compromise | Accepted risk; only generated code is sent; documented | — |
 
 ## Logging

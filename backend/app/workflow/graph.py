@@ -11,6 +11,7 @@ and `approve_commit` pause with `interrupt()`; the SQLite checkpointer lets anot
 process resume them.
 """
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -146,14 +147,27 @@ def run_config(run_id: str) -> dict[str, Any]:
     return {"configurable": {"thread_id": run_id}, "recursion_limit": RECURSION_LIMIT}
 
 
+NodeCallback = Callable[[str, dict[str, Any]], Awaitable[None]]
+
+
 async def advance(
-    app: CompiledStateGraph, run_id: str, deps: WorkflowDeps, value: dict | Command
+    app: CompiledStateGraph,
+    run_id: str,
+    deps: WorkflowDeps,
+    value: dict | Command,
+    on_node: NodeCallback | None = None,
 ) -> Step:
     """Start a run (`value` = initial state) or resume it (`value` = Command(resume=...)),
-    and run until it finishes or pauses."""
-    out = await app.ainvoke(value, run_config(run_id), context=deps)
-    interrupts = out.pop("__interrupt__", None) if isinstance(out, dict) else None
-    return Step(state=dict(out), pause=interrupts[0].value if interrupts else None)
+    and run until it finishes or pauses. `on_node(name, update)` is awaited after every
+    node, which is how the API records steps and streams progress."""
+    async for chunk in app.astream(value, run_config(run_id), context=deps, stream_mode="updates"):
+        for node, update in chunk.items():
+            if node != "__interrupt__" and on_node is not None:
+                await on_node(node, update or {})
+    step = await current(app, run_id)
+    if step is None:  # cannot happen after a run started; kept explicit, not an assert
+        raise RuntimeError(f"run {run_id} has no checkpoint")
+    return step
 
 
 async def current(app: CompiledStateGraph, run_id: str) -> Step | None:

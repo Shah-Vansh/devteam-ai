@@ -1,6 +1,8 @@
 # Database Schema
 
-> Status: designed in Phase 0, built in Phase 7.
+> Status: built in Phase 7: models in `backend/app/db/models.py`, migration
+> `backend/migrations/versions/0001_initial_schema.py`, applied at API startup. A test checks
+> that the migrations match the models.
 
 ## Choices
 
@@ -29,7 +31,7 @@ erDiagram
 
 | Table | Columns | Notes |
 |---|---|---|
-| `projects` | `id` PK, `name`, `requirement`, `workspace_path`, `created_at` | one project, many runs |
+| `projects` | `id` PK, `name`, `requirement`, `created_at` | one project, many runs (as built: the workspace belongs to each run, so `workspace_path` moved to `runs.workspace`) |
 | `runs` | `id` PK, `project_id` FK, `status`, `review_status`, `test_status`, `review_rounds`, `fix_rounds`, `thread_id`, `error`, `started_at`, `finished_at` | `thread_id` links to the LangGraph checkpoint |
 | `agent_steps` | `id` PK, `run_id` FK, `agent`, `round`, `status`, `summary`, `started_at`, `finished_at` | progress timeline |
 | `generated_files` | `id` PK, `run_id` FK, `path`, `sha256`, `size_bytes`, `version` | metadata only |
@@ -39,6 +41,17 @@ erDiagram
 | `test_cases` | `id` PK, `test_run_id` FK, `name`, `outcome`, `message` | |
 | `approvals` | `id` PK, `run_id` FK, `kind` (`clarify` / `execute` / `commit`), `status`, `answer`, `token_hash`, `created_at`, `decided_at` | only a hash of the commit token is stored |
 | `llm_calls` | `id` PK, `run_id` FK, `agent`, `model`, `input_tokens`, `output_tokens`, `latency_ms`, `created_at` | cost and usage tracking |
+
+As built, `runs` also stores `current_step`, `workspace`, `model`, `llm_calls`,
+`input_tokens`, `output_tokens` and `commit_sha`; `review_findings` stores `source` and `rule`;
+`test_runs` stores `status`, `skipped` and `detail`; `approvals.payload` holds what the human is
+shown (questions, files, commit message). Ids: `prj_…`, `apr_…`; run ids are the LangGraph thread
+ids (`YYYYMMDD-HHMMSS-xxxx`).
+
+The tables are a queryable copy of each run's state, written after every node by
+`backend/app/services/sync.py`. Each sync step only adds what is missing, so it can run
+repeatedly. File contents stay on disk; `generated_files` adds a new version row only when a
+file's SHA-256 changes. SQLite runs with foreign keys on and WAL journaling.
 
 ## Indexes
 

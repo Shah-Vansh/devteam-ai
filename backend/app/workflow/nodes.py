@@ -7,6 +7,7 @@ into a terminal status, so every run ends in a defined state.
 """
 
 import functools
+import hashlib
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -70,13 +71,26 @@ def plan_of(state: RunState) -> ProjectPlan:
     return ProjectPlan.model_validate(state["plan"])
 
 
-def spend(state: RunState, deps: WorkflowDeps, call: Any) -> dict[str, int]:
+def spend(state: RunState, deps: WorkflowDeps, call: Any, agent: str) -> dict[str, Any]:
     """Add a call's token use to the run's totals (`call` has `.usages`), enforcing the
-    per-run limit across every stage and across pauses."""
+    per-run limit across every stage and across pauses. Each call is also logged, for the
+    `llm_calls` table."""
     calls = state.get("llm_calls", 0) + len(call.usages)
     if calls > deps.max_llm_calls:
         raise LLMBudgetExceeded(f"used {calls} LLM calls; limit is {deps.max_llm_calls}")
+    log = list(state.get("llm_log", []))
+    log += [
+        {
+            "agent": agent,
+            "model": u.model,
+            "input_tokens": u.input_tokens,
+            "output_tokens": u.output_tokens,
+            "latency_ms": u.latency_ms,
+        }
+        for u in call.usages
+    ]
     return {
+        "llm_log": log,
         "llm_calls": calls,
         "input_tokens": state.get("input_tokens", 0) + sum(u.input_tokens for u in call.usages),
         "output_tokens": state.get("output_tokens", 0) + sum(u.output_tokens for u in call.usages),
@@ -99,7 +113,7 @@ async def plan(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str, Any
         deps.progress("planner: planning")
         clarifications = [Clarification(**c) for c in state.get("clarifications", [])]
         result = await in_thread(deps.planner.plan, state["requirement"], clarifications)
-        update |= spend(state, deps, AgentCall(data=result.plan, usages=[result.usage]))
+        update |= spend(state, deps, AgentCall(data=result.plan, usages=[result.usage]), "planner")
         update["plan"] = result.plan.model_dump()
         project = result.plan
     else:
@@ -145,7 +159,7 @@ async def develop(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str, 
     deps = runtime.context
     deps.progress("developer: writing files")
     call = await in_thread(deps.developer.generate, plan_of(state))
-    update = spend(state, deps, call)
+    update = spend(state, deps, call, "developer")
     written = await write_changes(deps.fs, state["workspace"], call.data)
     deps.progress(f"wrote {len(written)} files")
     return update
@@ -162,7 +176,7 @@ async def review(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str, A
         fs=deps.fs.read_only(),
         round=len(reports) + 1,
     )
-    update: dict[str, Any] = spend(state, deps, result)
+    update: dict[str, Any] = spend(state, deps, result, "reviewer")
     report = result.report
     reports.append(report.model_dump() | {"verdict": report.verdict})
     update["reports"] = reports
@@ -186,7 +200,7 @@ async def revise(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str, A
     deps.progress(f"developer: revision {rounds} ({len(report.to_fix)} findings to fix)")
     app_files, _ = split_files(await read_all(deps.fs, state["workspace"]))
     call = await in_thread(deps.developer.revise, plan_of(state), app_files, report.to_fix)
-    update = spend(state, deps, call)
+    update = spend(state, deps, call, "developer")
     changed = await write_changes(deps.fs, state["workspace"], call.data)
     deps.progress(f"updated {', '.join(changed)}")
     return update | {"review_rounds": rounds}
@@ -201,7 +215,7 @@ async def write_tests(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[s
     deps.progress("tester: writing tests")
     app_files, _ = split_files(await read_all(deps.fs, state["workspace"]))
     call = await in_thread(deps.tester.write_tests, plan_of(state), app_files)
-    update = spend(state, deps, call)
+    update = spend(state, deps, call, "tester")
     written = await write_changes(deps.fs, state["workspace"], call.data)
     deps.progress(f"wrote {', '.join(written)}")
     return update | {"tests_written": True}
@@ -297,7 +311,7 @@ async def triage(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str, A
     rounds = [dict(r) for r in state["test_rounds"]]
     result = ExecutionResult.model_validate(rounds[-1]["result"])
     call = await in_thread(deps.tester.triage, plan_of(state), app_files, test_files, result)
-    update: dict[str, Any] = spend(state, deps, call)
+    update: dict[str, Any] = spend(state, deps, call, "tester")
     rounds[-1]["triage"] = call.data.model_dump()
     update["test_rounds"] = rounds
 
@@ -340,7 +354,7 @@ async def fix_code(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str,
     app_files, _ = split_files(await read_all(deps.fs, state["workspace"]))
     findings = [Finding.model_validate(f) for f in state["pending_code_fixes"]]
     call = await in_thread(deps.developer.revise, plan_of(state), app_files, findings)
-    update = spend(state, deps, call)
+    update = spend(state, deps, call, "developer")
     changed = await write_changes(deps.fs, state["workspace"], call.data)
     deps.progress(f"updated {', '.join(changed)}")
     return update | {"pending_code_fixes": [], "code_changed_in_fix": True}
@@ -353,7 +367,7 @@ async def fix_tests(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str
     app_files, test_files = split_files(await read_all(deps.fs, state["workspace"]))
     items = [TriageItem.model_validate(i) for i in state["pending_test_fixes"]]
     call = await in_thread(deps.tester.fix_tests, plan_of(state), app_files, test_files, items)
-    update = spend(state, deps, call)
+    update = spend(state, deps, call, "tester")
     await write_changes(deps.fs, state["workspace"], call.data)
     return update | {"pending_test_fixes": []}
 
@@ -421,10 +435,11 @@ async def commit(state: RunState, runtime: Runtime[WorkflowDeps]) -> dict[str, A
     try:
         await deps.git.initialize_repository(workspace)
         token = deps.git.issue_commit_token(workspace, state["approved_digest"])
+        token_hash = hashlib.sha256(token.encode()).hexdigest()  # stored; the token is not
         result = await deps.git.create_commit(workspace, state["commit_message"], token)
     except GitToolError as exc:
         # The Git server refused (for example CONTENT_CHANGED): nothing was committed.
         deps.progress(f"commit refused: {exc.code}")
         return {"status": "NOT_COMMITTED", "stop_reason": f"commit refused: {exc}"}
     deps.progress(f"committed {result['commit'][:10]} on {result['branch']}")
-    return {"status": "SUCCESS", "commit": result}
+    return {"status": "SUCCESS", "commit": result, "commit_token_hash": token_hash}

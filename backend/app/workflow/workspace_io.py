@@ -1,10 +1,16 @@
 """Reading and writing a run's workspace through the Filesystem MCP client."""
 
 import secrets
+from datetime import datetime
 
 from app.mcp_clients.filesystem import FilesystemClient, FilesystemToolError
 from app.schemas.code import CodeChanges
 from app.schemas.testing import TestSuite, is_test_path
+
+
+def new_run_id() -> str:
+    """Run ids sort by start time: `YYYYMMDD-HHMMSS-xxxx`. Also the LangGraph thread id."""
+    return f"{datetime.now():%Y%m%d-%H%M%S}-{secrets.token_hex(2)}"
 
 
 def new_workspace_name(project_name: str) -> str:
