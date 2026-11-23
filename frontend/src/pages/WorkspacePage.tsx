@@ -150,7 +150,8 @@ function Editor(props: {
         ))}
       </div>
       {content.error && <ErrorBox error={content.error} />}
-      {content.data && (
+      {!content.error && content.data?.path !== path && <p className="muted code-loading">Opening {path}…</p>}
+      {content.data && content.data.path === path && (
         <pre className="code" aria-label={`Contents of ${path}`}>
           {highlightLines(path, content.data.content).map((tokens, i) => {
             const n = i + 1;

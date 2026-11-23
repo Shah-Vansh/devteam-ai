@@ -1804,3 +1804,9 @@ pre.code.small {
     transition: none !important;
   }
 }
+
+.code-loading {
+  padding: 14px 16px;
+  font-family: var(--font-mono, monospace);
+  font-size: 12.5px;
+}
