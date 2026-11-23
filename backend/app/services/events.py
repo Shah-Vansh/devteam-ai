@@ -10,6 +10,7 @@ import asyncio
 from collections import defaultdict
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 MAX_EVENTS_PER_RUN = 2000
@@ -29,7 +30,9 @@ class EventBroker:
 
     def publish(self, run_id: str, event: str, data: dict[str, Any]) -> Event:
         history = self._history[run_id]
-        item = Event(id=len(history) + 1, event=event, data=data)
+        # When it happened (UTC), so a replayed history still shows real times.
+        stamped = {**data, "at": datetime.now(UTC).isoformat(timespec="milliseconds")}
+        item = Event(id=len(history) + 1, event=event, data=stamped)
         history.append(item)
         del history[:-MAX_EVENTS_PER_RUN]
         for queue in self._subscribers[run_id]:

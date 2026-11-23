@@ -41,8 +41,8 @@ the matching accept bare function names and made the error list the names the mo
 next failure can be diagnosed from the record.
 
 **How is the system tested?**
-329 backend tests (unit, agents with a fake LLM, real MCP servers over stdio, the full graph, the
-API with real migrations, security), 28 frontend unit tests, and Playwright tests that drive the
+330 backend tests (unit, agents with a fake LLM, real MCP servers over stdio, the full graph, the
+API with real migrations, security), 50 frontend unit tests, and Playwright tests that drive the
 dashboard in a browser against a mocked API. GitHub Actions runs all of it on Linux with no
 secrets.
 

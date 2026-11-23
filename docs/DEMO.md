@@ -30,8 +30,8 @@ Events.
 
 ## 3. Watch the agents (1 minute)
 
-- The four agent cards change from *waiting* to *working* to *done*, and the live feed shows each
-  step.
+- The pipeline at the top shows which stage is running (it pulses), and the four agent cards
+  change from *waiting* to *working* to *done* while the terminal log shows each step.
 - "The Developer returns file contents only. Workflow code writes them through my own MCP server,
   which refuses paths outside the workspace, Windows device names and link escapes."
 - "The review verdict is computed from findings, and static analysis runs independently, so code
@@ -67,7 +67,7 @@ The panel **Tests passed. Commit these files?** lists the files and an editable 
 - Every run ends in a defined state; loops are bounded by counters and an LLM-call budget.
 - Pauses are LangGraph interrupts with a SQLite checkpointer: a paused run survives an API
   restart.
-- 329 backend tests, 28 frontend tests and 3 Playwright tests run in CI on every push; security
+- 330 backend tests, 50 frontend tests and 3 Playwright tests run in CI on every push; security
   tests map to each threat in the threat model.
 - Honest numbers: in the first benchmark, all easy requirements succeeded; the harder ones and the
   limits are documented in `docs/EVALUATION.md`.

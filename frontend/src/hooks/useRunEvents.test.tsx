@@ -75,3 +75,9 @@ describe("useRunEvents", () => {
     expect(source.closed).toBe(true);
   });
 });
+
+it("shows when an event happened, not when a replay arrived", () => {
+  const { result } = renderHook(() => useRunEvents("run-1"));
+  act(() => FakeEventSource.last.emit("log", "1", { message: "a", at: "2026-11-23T11:41:47.000Z" }));
+  expect(result.current.events[0]?.receivedAt.toISOString()).toBe("2026-11-23T11:41:47.000Z");
+});

@@ -15,6 +15,7 @@ export interface RunEvent {
   id: string;
   type: RunEventType;
   data: Record<string, unknown>;
+  receivedAt: Date; // when the browser got it (replayed history shows the replay time)
 }
 
 /**
@@ -48,7 +49,15 @@ export function useRunEvents(runId: string, onEvent?: (event: RunEvent) => void)
       } catch {
         data = { raw: message.data };
       }
-      const event: RunEvent = { id: message.lastEventId || `${type}-${seen.size}`, type, data };
+      // The server stamps each event when it happened ("at"); a replayed history keeps
+      // its real times. Events without a stamp (database snapshots) use arrival time.
+      const at = typeof data.at === "string" ? new Date(data.at) : new Date();
+      const event: RunEvent = {
+        id: message.lastEventId || `${type}-${seen.size}`,
+        type,
+        data,
+        receivedAt: Number.isNaN(at.getTime()) ? new Date() : at,
+      };
       setEvents((previous) => [...previous, event]);
       onEventRef.current?.(event);
       if (type === "finished") {

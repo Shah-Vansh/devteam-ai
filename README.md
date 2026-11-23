@@ -40,7 +40,7 @@ First end-to-end benchmark run (`gpt-oss-120b` on Groq, E2B sandbox), reported a
 - A run driven entirely from the dashboard (form, two approvals by click) passed 7/7 tests and
   committed.
 
-Tests: 329 backend tests, 28 frontend unit tests and 3 Playwright end-to-end tests, all offline.
+Tests: 330 backend tests, 50 frontend unit tests and 3 Playwright end-to-end tests, all offline.
 GitHub Actions runs them on every push on Linux, with Python 3.12 and 3.14.
 
 ## Quick start (Windows)
@@ -72,9 +72,17 @@ On Linux or macOS use `bash scripts/setup.sh`, then start `python -m app.api` in
 
 ## Using it
 
-**Dashboard** at http://localhost:5173: create a project and watch the four agents work live. You
-answer the approvals in the browser. Afterwards you can browse the generated files with review
-findings and git history, and read the report.
+**Dashboard** at http://localhost:5173, a dark, IDE-style interface:
+
+- **Pipeline:** every run is shown as a CI pipeline (Plan → Develop → Review → Write tests →
+  Approve run → Sandbox → Fix loop → Approve commit → Commit). The working stage pulses, the
+  approval gates light up when they need you, and loops show their count.
+- **Live:** the four agents with their current step, the approval gates, and a terminal-style
+  log with timestamps and colour per agent.
+- **Workspace:** a code editor view with a folder tree, syntax-highlighted code, a Problems panel
+  with the review findings (click one to jump to the line), and source control with the commit.
+- **Report:** verdict, separate review and test gauges, every test case, token usage per agent,
+  and a timeline of the steps.
 
 **Command line**, from `backend/`:
 

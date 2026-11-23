@@ -1,13 +1,14 @@
 import { useState } from "react";
 import type { Approval, Decision } from "../api/types";
+import { Icon } from "./icons";
 
 interface Props {
   approval: Approval;
   onDecide: (decision: Decision) => Promise<void>;
 }
 
-/** The human pause of a run: answer the Planner's questions, allow test execution in the
- * sandbox, or approve the commit. Every form can also cancel the whole run. */
+/** A human gate in the pipeline: answer the Planner's questions, allow test execution in
+ * the sandbox, or approve the commit. Every gate can also cancel the whole run. */
 export function ApprovalPanel({ approval, onDecide }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -29,19 +30,31 @@ export function ApprovalPanel({ approval, onDecide }: Props) {
   }
 
   const cancel = (
-    <button type="button" className="danger" disabled={busy} onClick={() => decide({ decision: "cancel" })}>
+    <button
+      type="button"
+      className="danger"
+      disabled={busy}
+      onClick={() => decide({ decision: "cancel" })}
+    >
+      <Icon name="x" width={14} height={14} />
       Cancel run
     </button>
   );
 
   return (
-    <section className="panel approval" aria-labelledby="approval-title">
+    <section className="gate-card" aria-labelledby="approval-title">
       {payload.kind === "clarify" && (
         <>
-          <h2 id="approval-title">The Planner has questions</h2>
-          <p className="muted">
-            Answer what matters. Empty answers keep the Planner's own assumptions.
-          </p>
+          <div className="gate-head">
+            <span className="gate-icon">
+              <Icon name="plan" />
+            </span>
+            <div>
+              <div className="eyebrow">gate · clarify</div>
+              <h2 id="approval-title">The Planner has questions</h2>
+            </div>
+          </div>
+          <p>Answer what matters. Empty answers keep the Planner's own assumptions.</p>
           {payload.questions.map((question, i) => (
             <label key={question} className="field">
               <span>{question}</span>
@@ -73,19 +86,34 @@ export function ApprovalPanel({ approval, onDecide }: Props) {
 
       {payload.kind === "execute" && (
         <>
-          <h2 id="approval-title">Run the generated tests?</h2>
+          <div className="gate-head">
+            <span className="gate-icon">
+              <Icon name="shield" />
+            </span>
+            <div>
+              <div className="eyebrow">gate · execute</div>
+              <h2 id="approval-title">Run the generated tests?</h2>
+            </div>
+          </div>
           <p>
             The code and tests will be sent to the <strong>{payload.executor}</strong> sandbox:
             a fresh microVM, packages from a pinned allow-list, internet switched off before the
             tests start.
           </p>
+          <ul className="gate-facts" aria-label="Sandbox guarantees">
+            <li>fresh microVM</li>
+            <li>pinned packages</li>
+            <li>internet off</li>
+            <li>no secrets inside</li>
+          </ul>
           <div className="actions">
             <button
               type="button"
-              className="primary"
+              className="good"
               disabled={busy}
               onClick={() => decide({ decision: "approve" })}
             >
+              <Icon name="play" width={14} height={14} />
               Run tests
             </button>
             <button type="button" disabled={busy} onClick={() => decide({ decision: "reject" })}>
@@ -98,8 +126,16 @@ export function ApprovalPanel({ approval, onDecide }: Props) {
 
       {payload.kind === "commit" && (
         <>
-          <h2 id="approval-title">Tests passed. Commit these files?</h2>
-          <p className="muted">
+          <div className="gate-head">
+            <span className="gate-icon">
+              <Icon name="commit" />
+            </span>
+            <div>
+              <div className="eyebrow">gate · commit</div>
+              <h2 id="approval-title">Tests passed. Commit these files?</h2>
+            </div>
+          </div>
+          <p>
             {payload.files.length} files in <code>{payload.workspace}</code>. The commit is only
             accepted for exactly these files: anything changed after this approval is refused.
           </p>
@@ -117,10 +153,11 @@ export function ApprovalPanel({ approval, onDecide }: Props) {
           <div className="actions">
             <button
               type="button"
-              className="primary"
+              className="good"
               disabled={busy || !message.trim()}
               onClick={() => decide({ decision: "approve", message })}
             >
+              <Icon name="commit" width={14} height={14} />
               Commit
             </button>
             <button type="button" disabled={busy} onClick={() => decide({ decision: "reject" })}>
@@ -132,7 +169,7 @@ export function ApprovalPanel({ approval, onDecide }: Props) {
       )}
 
       {error && (
-        <p role="alert" className="error">
+        <p role="alert" className="error" style={{ marginTop: 12 }}>
           {error}
         </p>
       )}

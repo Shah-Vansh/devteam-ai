@@ -381,3 +381,11 @@ def test_migrations_match_the_models(tmp_path):
 @pytest.fixture(autouse=True)
 def _quiet_logs(caplog):
     caplog.set_level("ERROR")
+
+
+def test_events_carry_the_time_they_happened():
+    from app.services.events import EventBroker
+
+    item = EventBroker().publish("run-1", "log", {"message": "planner: planning"})
+    assert item.data["message"] == "planner: planning"
+    assert item.data["at"].endswith("+00:00")  # UTC, ISO 8601

@@ -133,14 +133,16 @@ Events (`GET /api/runs/{id}/events`). See [API_DESIGN](API_DESIGN.md) and
 
 ### Dashboard (Phase 8)
 
-Code: `frontend/` (React 19, TypeScript 7, Vite 8, React Router 7, plain CSS).
+Code: `frontend/` (React 19, TypeScript 7, Vite 8, React Router 7, plain CSS). Dark, IDE-style
+design; pipeline states come from `src/lib/pipeline.ts`, code colouring from `src/lib/highlight.ts`
+(a small tokenizer; React escapes every token, so file contents cannot inject markup).
 
 | Screen | Route | Shows |
 |---|---|---|
 | Projects | `/` | New project form (name, requirement, type fixed to FastAPI) that creates the project and starts a run; projects with their latest runs |
-| Run: Live | `/runs/:id` | Four agent cards (state, steps, latest line), counters, approval panel (clarify / execute / commit), live event feed, cancel |
-| Run: Workspace | `/runs/:id/workspace` | File tree with finding counts, code viewer with line numbers and flagged lines, findings per file, git status and history |
-| Run: Report | `/runs/:id/report` | Verdict; review status and test status shown separately; test cases; triage; latest review; LLM usage per agent; steps |
+| Run: Live | `/runs/:id` | Pipeline of 9 stages (shown on every run tab), four agent cards, approval gates (clarify / execute / commit), terminal-style log with event timestamps, cancel |
+| Run: Workspace | `/runs/:id/workspace` | Editor layout: folder tree with finding counts, syntax-highlighted code with flagged lines, Problems panel (click to jump to a line), source control |
+| Run: Report | `/runs/:id/report` | Verdict; separate review and test gauges; test grid and cases; triage; latest review; token bars per agent; step timeline |
 
 - `RunLayout` holds one event stream and one copy of the run for all three run tabs.
 - `useRunEvents` wraps `EventSource`: it de-duplicates replayed events by id and closes the

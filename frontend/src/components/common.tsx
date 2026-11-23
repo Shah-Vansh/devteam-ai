@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import type { RunStatus } from "../api/types";
 
 const STATUS_TONE: Record<string, string> = {
-  RUNNING: "info",
-  PAUSED: "warn",
+  RUNNING: "info live",
+  PAUSED: "warn live",
   SUCCESS: "good",
   NOT_COMMITTED: "neutral",
   NOT_EXECUTED: "neutral",
@@ -17,15 +17,20 @@ const STATUS_TONE: Record<string, string> = {
   FAILED: "bad",
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  PAUSED: "waiting for you",
+  changes_needed: "changes needed",
+};
+
 export function StatusBadge({ status }: { status: RunStatus | string | null | undefined }) {
-  if (!status) return <span className="badge neutral">—</span>;
-  const label = status.replaceAll("_", " ").toLowerCase();
+  if (!status) return <span className="badge plain">—</span>;
+  const label = STATUS_LABEL[status] ?? status.replaceAll("_", " ").toLowerCase();
   return <span className={`badge ${STATUS_TONE[status] ?? "neutral"}`}>{label}</span>;
 }
 
 export function Loading({ what = "Loading" }: { what?: string }) {
   return (
-    <p className="muted" role="status">
+    <p className="empty" role="status">
       {what}…
     </p>
   );

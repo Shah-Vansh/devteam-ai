@@ -14,6 +14,21 @@
 | 9 Evaluation + hardening | Done (2026-11-20) |
 | 10 Packaging + portfolio | Done (2026-11-20) |
 
+## Dashboard redesign (2026-11-23)
+
+- Dark, IDE-style design system (one colour per agent, CI-style status colours, system fonts).
+- Run view: a 9-stage pipeline on every run tab (active stage pulses, gates light up when they
+  need you, loop counts), agent rail, approval gates, terminal-style log.
+- Workspace as a code editor: folder tree, syntax highlighting, Problems panel that jumps to the
+  line, source control. Report: verdict with separate review and test gauges, test grid, token
+  bars, step timeline. Projects: composer with example requirements, runs table.
+- Server-Sent Events now carry the time each event happened (`at`), so a replayed log shows real
+  times instead of the replay time.
+- Found while checking it in the browser: the pipeline's `agent` class collided with the agent
+  cards' styles; pipeline classes are now `kind-agent`, `kind-gate`, `kind-system`.
+- 330 backend tests, 50 frontend unit tests (22 new: pipeline, highlighter, file tree, event
+  times), 3 Playwright tests; all passing.
+
 ## Phase 10 — Packaging and portfolio
 
 Done:
