@@ -4,7 +4,9 @@ import { AgentCards } from "../components/AgentCards";
 import { ApprovalPanel } from "../components/ApprovalPanel";
 import { Icon } from "../components/icons";
 import { LiveFeed } from "../components/LiveFeed";
-import { agentCards } from "../lib/agents";
+import { TryApi } from "../components/TryApi";
+import { isDemo } from "../demo/demo";
+import { agentCards, isFinished } from "../lib/agents";
 import { useRunContext } from "./RunLayout";
 
 export function RunLivePage() {
@@ -39,6 +41,9 @@ export function RunLivePage() {
               Committed <code>{run.commit_sha.slice(0, 10)}</code> in <code>{run.workspace}</code>.
             </p>
           </div>
+        )}
+        {run.test_status === "PASSED" && isFinished(run.status) && !isDemo(run.id) && (
+          <TryApi runId={run.id} />
         )}
         <LiveFeed events={events} connected={connected} title={`${run.id} — run.log`} />
       </div>

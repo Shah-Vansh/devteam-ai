@@ -5,6 +5,7 @@ import type { ProjectDetail } from "../api/types";
 import { ErrorBox, Loading, StatusBadge } from "../components/common";
 import { Icon } from "../components/icons";
 import { useAsync } from "../hooks/useAsync";
+import { describeUsage } from "../lib/usage";
 
 const MAX_REQUIREMENT = 4000;
 
@@ -13,6 +14,28 @@ const EXAMPLES = [
   { name: "url-shortener", requirement: "Build a URL shortener API that creates short codes, redirects them, and counts clicks per link." },
   { name: "bookmarks", requirement: "Build a bookmarks API where each bookmark has a URL, title and tags, with filtering by tag." },
 ];
+
+/** Tokens left today, as estimated by the backend from this dashboard's runs. */
+export function UsageMeter() {
+  const usage = useAsync(() => api.usage(), []);
+  const view = describeUsage(usage.data);
+  if (!view) return null;
+  return (
+    <div className={`usage-meter ${view.level === "ok" ? "" : view.level}`} role="status">
+      <div className="usage-line">
+        <strong>LLM tokens today</strong>
+        <span className="mono small">
+          {Math.round((usage.data?.tokens_used ?? 0) / 1000)}k /{" "}
+          {Math.round((usage.data?.daily_limit ?? 0) / 1000)}k · dashboard runs only
+        </span>
+      </div>
+      <div className="usage-bar" aria-hidden="true">
+        <span style={{ width: `${view.usedPercent}%` }} />
+      </div>
+      <span>{view.message}</span>
+    </div>
+  );
+}
 
 const FLOW = ["plan", "develop", "review", "tests", "⛩ approve", "sandbox", "fix loop", "⛩ approve", "commit"];
 
@@ -104,6 +127,7 @@ export function NewProjectForm({ onStarted }: { onStarted: (runId: string) => vo
             {busy ? "Starting…" : "Create and start"}
           </button>
         </div>
+        <UsageMeter />
         {error && (
           <p role="alert" className="run-error">
             {error}
@@ -134,6 +158,11 @@ export function HomePage() {
             Four agents plan, write, review and test a FastAPI service. Generated code only runs in
             an isolated microVM, and nothing is executed or committed until you approve it.
           </p>
+          <Link to="/runs/demo" className="button demo-link">
+            <Icon name="play" width={14} height={14} />
+            Watch a demo run
+            <span className="dim">· no keys needed</span>
+          </Link>
           <div className="flow-strip" aria-label="Pipeline stages">
             {FLOW.map((step, i) => (
               <Fragment key={i}>

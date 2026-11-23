@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
+import { demoReplay, isDemo } from "../demo/demo";
 
 export const EVENT_TYPES = [
   "log",
@@ -35,6 +36,7 @@ export function useRunEvents(runId: string, onEvent?: (event: RunEvent) => void)
   useEffect(() => {
     setEvents([]);
     setFinished(false);
+    if (isDemo(runId)) return followDemo();
     const source = new EventSource(api.eventsUrl(runId));
     const seen = new Set<string>(); // ids already shown (replays after a reconnect)
     source.onopen = () => setConnected(true);
@@ -72,6 +74,33 @@ export function useRunEvents(runId: string, onEvent?: (event: RunEvent) => void)
       for (const [type, listener] of listeners) source.removeEventListener(type, listener);
       source.close();
     };
+
+    /** The demo run: events come from the in-browser replay instead of the server. */
+    function followDemo() {
+      setConnected(true);
+      return demoReplay.subscribe(
+        (item) => {
+          const at = new Date(String(item.data.at));
+          const event: RunEvent = {
+            id: item.id,
+            type: item.type as RunEventType,
+            data: item.data,
+            receivedAt: Number.isNaN(at.getTime()) ? new Date() : at,
+          };
+          setEvents((previous) => [...previous, event]);
+          onEventRef.current?.(event);
+          if (item.type === "finished") {
+            setFinished(true);
+            setConnected(false);
+          }
+        },
+        () => {
+          setEvents([]);
+          setFinished(false);
+          setConnected(true);
+        },
+      );
+    }
   }, [runId]);
 
   return { events, connected, finished };

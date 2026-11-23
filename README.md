@@ -33,15 +33,30 @@ passed review never counts as passed tests.
 
 First end-to-end benchmark run (`gpt-oss-120b` on Groq, E2B sandbox), reported as measured:
 
-- 3 of the 5 cases that could run reached `SUCCESS`. All three easy requirements succeeded with
-  26/26 generated tests passing, each in about two minutes with 4–5 LLM calls.
-- One medium case failed its tests and then failed triage; one hit the free tier's daily token
-  limit. Cases 6–10 are not measured yet. Details: [docs/EVALUATION.md](docs/EVALUATION.md).
+- 5 of the 7 cases run so far reached `SUCCESS`: all 3 easy and 2 of 3 medium requirements, with
+  every generated test passing in those five (45/45). One of them needed the fix loop: a wrong
+  test was diagnosed, fixed and passed on the re-run.
+- One medium case failed its tests; the first hard case hit the free tier's daily token limit.
+  Cases 8–10 are not measured yet. Details: [docs/EVALUATION.md](docs/EVALUATION.md).
 - A run driven entirely from the dashboard (form, two approvals by click) passed 7/7 tests and
   committed.
 
-Tests: 334 backend tests, 63 frontend unit tests and 3 Playwright end-to-end tests, all offline.
+Tests: 352 backend tests, 72 frontend unit tests and 4 Playwright end-to-end tests, all offline.
 GitHub Actions runs them on every push on Linux, with Python 3.12 and 3.14.
+
+## Try it without any keys
+
+Clone, install the dashboard and open the demo: a real run recorded earlier, replayed in the
+browser (pipeline, agents, both approvals, the generated code and the report). It needs no
+backend, API keys or tokens.
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Then open http://localhost:5173/runs/demo, or click **Watch a demo run** on the start page.
 
 ## Quick start (Windows)
 
@@ -84,6 +99,10 @@ the system setting; the ☀/☾ button in the top bar switches and remembers you
   with the review findings (click one to jump to the line), and source control with the commit.
 - **Report:** verdict, separate review and test gauges, every test case, token usage per agent,
   and a timeline of the steps.
+- **Try the API:** after tests pass, one click starts the generated app in a fresh E2B sandbox for
+  10 minutes (outbound internet off) and opens its interactive `/docs` page.
+- **Download ZIP** of a generated project, **Retry** / **Run again** with the same requirement,
+  and an estimate of the LLM tokens left today before you start a run.
 
 **Command line**, from `backend/`:
 

@@ -177,6 +177,23 @@ class GitInfo(BaseModel):
     commits: list[GitCommit]
 
 
+class Usage(BaseModel):
+    """LLM tokens used by runs of this dashboard in the last 24 hours, against the
+    configured daily allowance. Runs from the CLI or the benchmark are not included."""
+
+    window_hours: int
+    tokens_used: int
+    daily_limit: int  # 0: not configured
+    tokens_left: int | None
+    typical_run_tokens: int | None  # average of recent finished runs
+
+
+class PreviewOut(BaseModel):
+    status: Literal["starting", "running", "stopped"]
+    url: str | None = None
+    expires_at: datetime | None = None
+
+
 class Health(BaseModel):
     status: Literal["ok"]
     executor: str
@@ -184,3 +201,4 @@ class Health(BaseModel):
     llm_configured: bool
     llm_error: str | None
     git_available: bool
+    preview_available: bool = False

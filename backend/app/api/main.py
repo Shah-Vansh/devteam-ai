@@ -46,6 +46,7 @@ def create_app(
             app.state.events, app.state.manager = events, manager
             yield
             await manager.shutdown()
+            await runtime.previews.stop_all()
         db.engine.dispose()
 
     app = FastAPI(title="DevTeam AI", version="0.1.0", lifespan=lifespan)
@@ -78,6 +79,7 @@ def create_app(
             llm_configured=runtime.make_deps is not None,
             llm_error=runtime.llm_error,
             git_available=shutil.which("git") is not None,
+            preview_available=runtime.previews.available,
         )
 
     return app

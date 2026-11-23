@@ -356,7 +356,8 @@ main {
 }
 
 /* ---------------- controls ---------------- */
-button {
+button,
+.button {
   font: inherit;
   font-size: 14px;
   font-weight: 550;
@@ -374,7 +375,8 @@ button {
     border-color 0.15s,
     transform 0.05s;
 }
-button:hover:not(:disabled) {
+button:hover:not(:disabled),
+.button:hover {
   background: var(--surface-3);
   border-color: var(--dim);
 }
@@ -385,13 +387,15 @@ button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
-button.primary {
+button.primary,
+.button.primary {
   background: linear-gradient(180deg, var(--accent), var(--accent-strong));
   border-color: var(--accent-strong);
   color: #fff;
   box-shadow: 0 4px 16px rgba(91, 124, 255, 0.3);
 }
-button.primary:hover:not(:disabled) {
+button.primary:hover:not(:disabled),
+.button.primary:hover {
   background: linear-gradient(180deg, #8eaaff, var(--accent));
 }
 button.good {
@@ -413,9 +417,22 @@ button.ghost {
   border-color: transparent;
   color: var(--muted);
 }
-button.small {
+button.small,
+.button.small {
   padding: 4px 10px;
   font-size: 13px;
+}
+.button {
+  text-decoration: none;
+}
+.button:hover {
+  text-decoration: none;
+}
+.run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 .actions {
   display: flex;
@@ -477,6 +494,8 @@ select:disabled {
 /* ---------------- status pills and dots ---------------- */
 .badge {
   display: inline-flex;
+  flex: none; /* never squashed into a column next to long titles */
+  white-space: nowrap;
   align-items: center;
   gap: 6px;
   padding: 2px 9px;
@@ -1915,4 +1934,100 @@ pre.code.small {
   padding: 14px 16px;
   font-family: var(--font-mono, monospace);
   font-size: 13.5px;
+}
+
+/* ---------------- try the API ---------------- */
+.try-api {
+  padding: 16px 18px;
+  border-color: var(--accent-soft);
+  background: linear-gradient(135deg, var(--accent-soft), transparent 60%), var(--surface);
+}
+.try-api-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.try-api-head h2 {
+  margin: 0 0 2px;
+  font-size: 1rem;
+}
+.try-api-live {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.try-api-url {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.try-api .gate-icon {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ---------------- token estimate ---------------- */
+.usage-meter {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 13px;
+}
+.usage-meter.low {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+.usage-meter.out {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+}
+.usage-line {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.usage-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.usage-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+.usage-meter.low .usage-bar span {
+  background: var(--warn);
+}
+.usage-meter.out .usage-bar span {
+  background: var(--bad);
+}
+
+/* ---------------- demo ---------------- */
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-soft);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 13.5px;
+}
+.demo-banner svg {
+  color: var(--accent);
+  flex: none;
+}
+.demo-link {
+  align-self: flex-start;
+  margin: 4px 0 18px;
 }

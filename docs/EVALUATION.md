@@ -1,6 +1,6 @@
 # Evaluation
 
-> Status: end-to-end runner built in Phase 9 (`eval/run_benchmark.py`); first live results below.
+> Status: end-to-end runner built in Phase 9 (`eval/run_benchmark.py`); 7 of 10 cases measured (below).
 
 ## Why
 
@@ -37,12 +37,13 @@ Ten fixed requirements, increasing in difficulty:
 `eval/results/<date>-<model>.json` plus a summary table in this file, e.g. "7/10 benchmark
 requirements reach SUCCESS with model X". Results are reported as measured, including failures.
 
-## End-to-end benchmark (Phase 9, 2026-11-20)
+## End-to-end benchmark (2026-11-20 and 2026-11-23)
 
 Each case runs the real workflow: Groq `gpt-oss-120b` (reasoning effort low) for the agents,
 E2B for the tests, a real local commit. Pauses are approved automatically. Code:
 `backend/app/evaluation/benchmark.py`, runner `eval/run_benchmark.py`, raw results
-`eval/results/2026-11-20-e2e-openai_gpt-oss-120b.json`.
+`eval/results/2026-11-20-e2e-openai_gpt-oss-120b.json`. b01–b04 ran on 2026-11-20, b05–b07 on
+2026-11-23 after the fixes listed below.
 
 | Case | Difficulty | Status | Review rounds | Fix rounds | Tests | LLM calls | Tokens | Time |
 |---|---|---|---|---|---|---|---|---|
@@ -50,30 +51,47 @@ E2B for the tests, a real local commit. Pauses are approved automatically. Code:
 | b02 todo CRUD | easy | SUCCESS | 0 | 0 | 10/10 | 5 | 16,167 | 118 s |
 | b03 notes with SQLite | easy | SUCCESS | 0 | 0 | 11/11 | 5 | 19,674 | 121 s |
 | b04 URL shortener | medium | FAILED_TESTS | 1 | 0 | 3/7 | 7 | 24,362 | 224 s |
-| b05 inventory | medium | ERROR (daily quota) | 0 | 0 | 5/11 | 5 | 18,863 | 148 s |
-| b06–b10 | medium, hard | not run (daily quota) | | | | | | |
+| b05 inventory | medium | SUCCESS | 0 | 0 | 13/13 | 5 | 19,637 | 99 s |
+| b06 bookmarks with tags | medium | SUCCESS (after a fix round) | 1 | 1 | 6/6 | 9 | 31,700 | 207 s |
+| b07 tasks with JWT login | hard | ERROR (daily token quota) | 0 | 0 | — | 4 | 15,387 | 117 s |
+| b08–b10 | hard | not run yet (daily token quota) | | | | | | |
 
-**Headline (as measured): 3 of 5 cases run reached `SUCCESS`; all 3 easy cases succeeded with
-26/26 generated tests passing, each in about 2 minutes and 4–5 LLM calls.** The free tier's
-200,000 tokens per day ran out during b05, so b05–b10 are not measured yet.
+**Headline (as measured): 5 of the 7 cases run reached `SUCCESS`: all 3 easy and 2 of 3 medium,
+with 45/45 generated tests passing in those five.** b06 shows the full loop working: its first
+test run failed, triage blamed the test (`bad_test`), the Tester fixed it, and the re-run
+passed. The free tier's 200,000 tokens per day ran out during b07, so b07–b10 are not measured.
 
-What the failures show:
+What the failures and errors showed, and what changed:
 
-- **b04:** the generated tests failed (3/7: redirect and statistics endpoints) and triage did not
-  name the four failing tests in a form the check accepted, twice, so the run stopped before any
-  fix round. The rejected answer was not recorded, so the exact cause is unknown; the most likely
-  one, bare function names such as `test_redirect_success`, is now accepted, and the error message
-  now includes the names the model gave.
-- **b05:** stopped by the provider's daily token limit, recorded as `ERROR` with the reason.
+- **b04 (2026-11-20):** the generated tests failed (3/7) and triage did not name the failing
+  tests in a form the check accepted, twice, so the run stopped before any fix round. Bare
+  function names such as `test_redirect_success` are now accepted, and the error lists the
+  names the model gave. b04 has not been re-run since.
+- **b05, first two attempts (2026-11-23):** the triage request was larger than the free tier's
+  8,000 tokens per minute (8,497, then 9,223 tokens), so Groq refused it outright (HTTP 413);
+  waiting would not have helped. Two changes, measured on the saved state of that run (about
+  9,200 tokens before, about 7,000 after):
+  - triage and test fixes now receive only the test files that contain the failing tests (plus
+    `conftest.py`), not every test file;
+  - failure messages share a fixed budget, keep their last lines (where pytest prints the
+    error), and identical errors are shown once (all 8 failures there were the same database
+    error).
 
-To finish the benchmark when the quota allows:
+  The third attempt passed 13/13 with no fix round needed.
+- **b07:** stopped by the provider's daily token limit, recorded as `ERROR` with the reason.
+
+A larger project can still exceed 8,000 tokens in one request; that is a limit of the free
+tier, not of the design (a paid tier raises it).
+
+To finish the benchmark when the daily quota has reset (about 24 hours after it ran out):
 
 ```powershell
 cd backend
 ..\.venv\Scripts\python.exe ..\eval\run_benchmark.py --reasoning-effort low --resume ..\eval\results\2026-11-20-e2e-openai_gpt-oss-120b.json
 ```
 
-`--resume` keeps finished cases and redoes those stopped by provider errors.
+`--resume` keeps finished cases and redoes those stopped by provider errors (here b07), then
+runs b08–b10.
 
 ## Results so far
 

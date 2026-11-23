@@ -14,6 +14,29 @@
 | 9 Evaluation + hardening | Done (2026-11-20) |
 | 10 Packaging + portfolio | Done (2026-11-20) |
 
+## Demo mode, Try the API, and more benchmark cases (2026-11-23)
+
+- **Demo mode** (`/runs/demo`, "Watch a demo run"): a real successful run recorded with
+  `scripts/record_demo.py` and replayed in the browser, with the same pages, both approvals,
+  the code and the report. No backend, keys or tokens; a Playwright test runs it with every API
+  call blocked.
+- **Try the API:** after tests pass, the generated app runs in a fresh E2B sandbox for 10
+  minutes with the same rules as the test sandbox (no environment variables, allow-listed
+  packages, outbound internet off), and its `/docs` page opens. Verified live: the generated
+  notes API answered create and list through the public URL; after Stop the URL returned 502.
+- **Download ZIP**, **Retry / Run again**, and an estimate of the LLM tokens left today
+  (`LLM_DAILY_TOKEN_LIMIT`; counts only dashboard runs, and says so).
+- Found while testing: running a generated app on the host leaves `__pycache__/*.pyc` files,
+  which the Filesystem server rightly refuses to read, so the whole ZIP download failed.
+  Unreadable files are now skipped. Elapsed time of a live run was off by the UTC offset
+  (times without a zone read as local time); fixed.
+- **Benchmark:** b05 was refused twice by the provider (HTTP 413: one triage request above the
+  free tier's 8,000 tokens per minute). Triage and test fixes now get only the failing test files,
+  and failure messages share a budget with identical errors shown once (about 9,200 → 7,000
+  tokens, measured on that run's saved state). Then b05 passed 13/13 and b06 6/6 after a fix
+  round; b07 hit the daily token limit. 5 of 7 cases run reached `SUCCESS`; b08–b10 pending.
+- 352 backend tests, 72 frontend unit tests, 4 Playwright tests; all passing.
+
 ## Fixes from live runs, and a light theme (2026-11-23)
 
 - A live run stopped because the provider rejected the Tester's whole test suite for one extra

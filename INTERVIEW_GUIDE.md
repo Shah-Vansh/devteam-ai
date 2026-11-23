@@ -29,11 +29,17 @@ I checked this on a fresh clone.
 ## Phase 9 — Evaluation and hardening
 
 **Does it actually work? Give numbers.**
-On the first live benchmark run with `gpt-oss-120b`, 3 of the 5 cases that could run reached
-`SUCCESS`. All three easy requirements succeeded with 26/26 generated tests passing in the
-sandbox, each in about two minutes with 4–5 LLM calls. One medium case failed its tests and then
-failed triage; another hit the free tier's daily token limit. The remaining five are not measured
-yet. I report it exactly like that.
+With `gpt-oss-120b`, 5 of the 7 benchmark cases run so far reached `SUCCESS`: all 3 easy and 2
+of 3 medium, with every generated test passing in those five. One went through the fix loop (a
+wrong test was diagnosed, fixed and passed). One medium case failed its tests, the first hard case
+hit the free tier's daily token limit, and three are not measured yet. I report it exactly like
+that.
+
+**What did the benchmark find that unit tests could not?**
+A triage request was larger than the free tier's 8,000 tokens per minute, so the provider refused
+it outright. I measured the prompt from the saved run state and cut it from about 9,200 to about
+7,000 tokens: only the failing test files are sent, and identical errors are shown once. The
+same case then passed 13/13.
 
 **What did the failed case teach you?**
 The triage check rejected answers that did not name the failing tests in an accepted form. I made
@@ -41,8 +47,8 @@ the matching accept bare function names and made the error list the names the mo
 next failure can be diagnosed from the record.
 
 **How is the system tested?**
-334 backend tests (unit, agents with a fake LLM, real MCP servers over stdio, the full graph, the
-API with real migrations, security), 63 frontend unit tests, and Playwright tests that drive the
+352 backend tests (unit, agents with a fake LLM, real MCP servers over stdio, the full graph, the
+API with real migrations, security), 72 frontend unit tests, and Playwright tests that drive the
 dashboard in a browser against a mocked API. GitHub Actions runs all of it on Linux with no
 secrets.
 

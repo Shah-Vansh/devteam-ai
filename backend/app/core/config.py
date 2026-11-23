@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     max_fix_rounds: int = 2
     max_llm_calls_per_run: int = 40
 
+    # The provider's daily token allowance (Groq free tier: 200,000). Used only to show an
+    # estimate of what is left before starting a run; 0 turns the estimate off.
+    llm_daily_token_limit: int = 0
+
     @field_validator(
         "llm_api_key",
         "e2b_api_key",

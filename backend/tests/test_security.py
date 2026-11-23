@@ -120,12 +120,16 @@ def test_api_offers_no_way_to_write_files_or_commit_directly(tmp_path):
         for method in operations
         if method in ("post", "put", "patch", "delete")
     }
-    # Only these change anything; commits happen solely through an approval.
+    # Only these change anything; commits happen solely through an approval. The preview
+    # pair starts and stops a sandbox running files already in the workspace (only for a
+    # run whose tests passed); it writes nothing on the host and cannot change the files.
     assert writes == {
         ("/api/projects", "POST"),
         ("/api/projects/{project_id}/runs", "POST"),
         ("/api/runs/{run_id}/cancel", "POST"),
         ("/api/approvals/{approval_id}", "POST"),
+        ("/api/runs/{run_id}/preview", "POST"),
+        ("/api/runs/{run_id}/preview/stop", "POST"),
     }
 
 

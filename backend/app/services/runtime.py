@@ -6,7 +6,7 @@ a factory for per-run dependencies. Tests build a `Runtime` with fakes instead.
 
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph.state import CompiledStateGraph
@@ -17,11 +17,14 @@ from app.agents.reviewer import Reviewer
 from app.agents.tester import Tester
 from app.core.config import Settings
 from app.execution.factory import build_executor
+from app.execution.packages import CONSTRAINTS_FILE
+from app.execution.preview import E2BPreview
 from app.gitops.repo import CommitAuthor
 from app.llm.base import LLMConfigError
 from app.llm.factory import build_llm_client
 from app.mcp_clients.filesystem import FilesystemClient
 from app.mcp_clients.git import GitClient
+from app.services.previews import PreviewManager
 from app.workflow.graph import build_graph
 from app.workflow.state import WorkflowDeps
 
@@ -38,6 +41,9 @@ class Runtime:
     executor_name: str
     model: str | None
     llm_error: str | None = None
+    # "Try the API": generated apps in E2B. Without a sandbox key previews are unavailable.
+    previews: PreviewManager = field(default_factory=lambda: PreviewManager(None))
+    daily_token_limit: int = 0  # 0: no quota estimate shown
 
 
 @asynccontextmanager
@@ -82,4 +88,14 @@ async def real_runtime(settings: Settings) -> AsyncIterator[Runtime]:
             executor_name=executor.name,
             model=settings.llm_model or None,
             llm_error=llm_error,
+            previews=PreviewManager(preview_for(settings)),
+            daily_token_limit=settings.llm_daily_token_limit,
         )
+
+
+def preview_for(settings: Settings) -> E2BPreview | None:
+    if settings.executor != "e2b" or settings.e2b_api_key is None:
+        return None
+    return E2BPreview(
+        settings.e2b_api_key.get_secret_value(), CONSTRAINTS_FILE.read_text(encoding="utf-8")
+    )

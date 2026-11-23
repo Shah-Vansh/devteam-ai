@@ -2,12 +2,12 @@
   "model": "openai/gpt-oss-120b",
   "reasoning_effort": "low",
   "executor": "e2b",
-  "date": "2026-11-20",
+  "date": "2026-11-23",
   "summary": {
-    "cases": 5,
-    "success": 3,
+    "cases": 7,
+    "success": 5,
     "by_status": {
-      "SUCCESS": 3,
+      "SUCCESS": 5,
       "FAILED_TESTS": 1,
       "ERROR": 1
     },
@@ -17,15 +17,19 @@
         "success": 3
       },
       "medium": {
-        "cases": 2,
+        "cases": 3,
+        "success": 2
+      },
+      "hard": {
+        "cases": 1,
         "success": 0
       }
     },
-    "tests_passed": 34,
-    "tests_total": 44,
-    "llm_calls": 26,
-    "tokens": 87112,
-    "seconds": 632.1
+    "tests_passed": 48,
+    "tests_total": 52,
+    "llm_calls": 39,
+    "tokens": 134973,
+    "seconds": 906.4
   },
   "cases": [
     {
@@ -103,20 +107,56 @@
     {
       "id": "b05",
       "difficulty": "medium",
-      "run_id": "20261120-174643-b712",
-      "status": "ERROR",
-      "stop_reason": "LLM provider request failed: tester: provider request failed: Error code: 429 - Rate limit reached for model `openai/gpt-oss-120b` in organization `org_<redacted>` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 194591, Requested 8303. Please try again in 20m50.2",
+      "run_id": "20261123-194122-990d",
+      "status": "SUCCESS",
+      "stop_reason": "",
       "review_rounds": 0,
       "fix_rounds": 0,
       "reviews": 1,
       "test_runs": 1,
-      "tests_passed": 5,
-      "tests_total": 11,
-      "committed": false,
+      "tests_passed": 13,
+      "tests_total": 13,
+      "committed": true,
       "llm_calls": 5,
-      "input_tokens": 13724,
-      "output_tokens": 5139,
-      "seconds": 148.4
+      "input_tokens": 13650,
+      "output_tokens": 5987,
+      "seconds": 99.0
+    },
+    {
+      "id": "b06",
+      "difficulty": "medium",
+      "run_id": "20261123-194321-5b0d",
+      "status": "SUCCESS",
+      "stop_reason": "",
+      "review_rounds": 1,
+      "fix_rounds": 1,
+      "reviews": 2,
+      "test_runs": 2,
+      "tests_passed": 6,
+      "tests_total": 6,
+      "committed": true,
+      "llm_calls": 9,
+      "input_tokens": 25568,
+      "output_tokens": 6132,
+      "seconds": 206.8
+    },
+    {
+      "id": "b07",
+      "difficulty": "hard",
+      "run_id": "20261123-194708-5338",
+      "status": "ERROR",
+      "stop_reason": "LLM provider request failed: reviewer: provider request failed: Error code: 429 - Rate limit reached for model `openai/gpt-oss-120b` in organization `org_<redacted>` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 193896, Requested 6735. Please try again in 4m32.591999999s. Need",
+      "review_rounds": 0,
+      "fix_rounds": 0,
+      "reviews": 0,
+      "test_runs": 0,
+      "tests_passed": 0,
+      "tests_total": 0,
+      "committed": false,
+      "llm_calls": 4,
+      "input_tokens": 9802,
+      "output_tokens": 5585,
+      "seconds": 116.9
     }
   ]
 }

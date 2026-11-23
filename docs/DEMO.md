@@ -9,8 +9,9 @@ are in `.env`, and there is LLM quota left for one run (about 12,000 tokens).
 powershell -ExecutionPolicy Bypass -File scripts\start.ps1
 ```
 
-Wait until the dashboard shows `sandbox: e2b · model: openai/gpt-oss-120b` at the top. Keep one
-finished run in the project list as a fallback in case the provider is slow or out of quota.
+Wait until the dashboard shows `sandbox: e2b · model: openai/gpt-oss-120b` at the top. Check the
+token estimate under the form: a run needs about 15–30k tokens. If the provider is slow or out of
+quota, use **Watch a demo run**: a real recorded run, replayed with both approvals, no keys needed.
 
 ## 1. The idea (30 seconds)
 
@@ -67,15 +68,15 @@ The panel **Tests passed. Commit these files?** lists the files and an editable 
 - Every run ends in a defined state; loops are bounded by counters and an LLM-call budget.
 - Pauses are LangGraph interrupts with a SQLite checkpointer: a paused run survives an API
   restart.
-- 334 backend tests, 63 frontend tests and 3 Playwright tests run in CI on every push; security
+- 352 backend tests, 72 frontend tests and 4 Playwright tests run in CI on every push; security
   tests map to each threat in the threat model.
 - Honest numbers: in the first benchmark, all easy requirements succeeded; the harder ones and the
   limits are documented in `docs/EVALUATION.md`.
 
 ## If something goes wrong
 
-- **Provider quota or rate limit:** the run ends as `ERROR` with the reason. Show it, then open
-  the fallback run from the project list.
+- **Provider quota or rate limit:** the run ends as `ERROR` with the reason. Show it, then switch
+  to **Watch a demo run** on the start page.
 - **Tests fail:** show the triage in the Report tab and the fix rounds. A `FAILED_TESTS` result
   is also a good demo of the bounded loop.
 - **No E2B key:** tests are reported as `NOT_EXECUTED`, never as passed. That is a point worth

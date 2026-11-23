@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.agents.common import AgentOutputError
-from app.agents.tester import Tester
+from app.agents.tester import FAILURES_BUDGET, Tester, failures_block, relevant_test_files
 from app.execution.base import ExecutionResult, TestCaseResult
 from app.llm.fake import FakeLLMClient
 from app.schemas.testing import TestSuite
@@ -75,6 +75,57 @@ def test_triage_missing_a_failure_is_rejected(todo_plan, todo_files):
         Tester(llm).triage(todo_plan, todo_files, TESTS, failed())
 
 
+MANY_TESTS = {
+    "tests/__init__.py": "",
+    "tests/conftest.py": "# shared fixtures\n",
+    TEST_FILE: "def test_create():\n    assert True\n",
+    "tests/test_list.py": "def test_list():\n    assert True\n",
+    "tests/test_delete.py": "def test_delete():\n    assert True\n",
+}
+
+
+@pytest.mark.parametrize(
+    ("names", "expected"),
+    [
+        ([f"{TEST_FILE}::test_create"], {TEST_FILE}),
+        (["tests.test_list.test_list"], {"tests/test_list.py"}),
+        (["tests/test_delete.py"], {"tests/test_delete.py"}),
+        (
+            [f"{TEST_FILE}::test_create", "tests/test_list.py::test_list"],
+            {TEST_FILE, "tests/test_list.py"},
+        ),
+    ],
+)
+def test_relevant_test_files_keeps_failing_modules_and_fixtures(names, expected):
+    picked = relevant_test_files(MANY_TESTS, names)
+    assert set(picked) == expected | {"tests/__init__.py", "tests/conftest.py"}
+
+
+def test_relevant_test_files_keeps_everything_when_nothing_matches():
+    assert relevant_test_files(MANY_TESTS, ["test_create"]) == MANY_TESTS
+
+
+def test_triage_and_fixes_show_only_the_relevant_test_files(todo_plan, todo_files):
+    # Found live: every test file in the prompt made one request larger than the free
+    # tier's 8,000 tokens per minute.
+    fixed = suite({TEST_FILE: "def test_create():\n    assert 1\n"})
+    llm = FakeLLMClient([triage(), fixed])
+    tester = Tester(llm)
+    call = tester.triage(todo_plan, todo_files, MANY_TESTS, failed())
+    item = call.data.items[0].model_copy(update={"cause": "bad_test", "file": TEST_FILE})
+    tester.fix_tests(todo_plan, todo_files, MANY_TESTS, [item])
+    for request in llm.requests:
+        assert TEST_FILE in request.user and "tests/conftest.py" in request.user
+        assert "tests/test_list.py" not in request.user
+        assert "tests/test_delete.py" not in request.user
+
+
+def test_triage_may_still_blame_a_test_file_it_was_not_shown(todo_plan, todo_files):
+    other = triage(cause="bad_test", file="tests/test_list.py")
+    call = Tester(FakeLLMClient([other])).triage(todo_plan, todo_files, MANY_TESTS, failed())
+    assert call.data.items[0].file == "tests/test_list.py"
+
+
 # ---------- build_and_test ----------
 
 
@@ -110,3 +161,28 @@ def test_collection_errors_get_a_readable_name():
     (case,) = parse_junit(xml)
     assert case.name == "tests/test_create.py::(collection)"
     assert case.outcome == "error" and "NameError" in case.message
+
+
+# ---------- failure messages within a budget ----------
+
+
+def many_failures(messages):
+    cases = [
+        TestCaseResult(name=f"{TEST_FILE}::test_{i}", outcome="failed", message=m)
+        for i, m in enumerate(messages)
+    ]
+    return ExecutionResult(status="FAILED", executor="fake", failed=len(cases), cases=cases)
+
+
+def test_identical_errors_are_shown_once():
+    same = "x" * 2000 + "\nE   ModuleNotFoundError: No module named 'app.db'"
+    block = failures_block(many_failures([same.replace("x", str(i % 10)) for i in range(8)]))
+    assert block.count("ModuleNotFoundError") == 1
+    assert block.count("(same error as tests/test_todos.py::test_0)") == 7
+
+
+def test_failure_messages_keep_their_end_and_fit_the_budget():
+    messages = [("traceback line\n" * 200) + f"E   assert {i} == 201" for i in range(8)]
+    block = failures_block(many_failures(messages))
+    assert all(f"E   assert {i} == 201" in block for i in range(8))
+    assert len(block) < FAILURES_BUDGET + 8 * 80

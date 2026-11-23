@@ -4,13 +4,17 @@ import type {
   FileEntry,
   GitInfo,
   Health,
+  Preview,
   Project,
   ProjectDetail,
   Report,
   Review,
   Run,
   TestRun,
+  Usage,
 } from "./types";
+
+import { withDemo } from "../demo/demo";
 
 // Only VITE_ variables from the root .env are visible here (never secrets).
 export const API_BASE_URL: string =
@@ -56,7 +60,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 const post = <T>(path: string, body?: unknown) =>
   request<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
 
-export const api = {
+const baseApi = {
   health: () => request<Health>("/api/health"),
   listProjects: () => request<Project[]>("/api/projects"),
   getProject: (id: string) => request<ProjectDetail>(`/api/projects/${encodeURIComponent(id)}`),
@@ -81,4 +85,12 @@ export const api = {
   git: (id: string) => request<GitInfo>(`/api/runs/${encodeURIComponent(id)}/git`),
   report: (id: string) => request<Report>(`/api/runs/${encodeURIComponent(id)}/report`),
   eventsUrl: (id: string) => `${API_BASE_URL}/api/runs/${encodeURIComponent(id)}/events`,
+  archiveUrl: (id: string) => `${API_BASE_URL}/api/runs/${encodeURIComponent(id)}/archive`,
+  preview: (id: string) => request<Preview>(`/api/runs/${encodeURIComponent(id)}/preview`),
+  startPreview: (id: string) => post<Preview>(`/api/runs/${encodeURIComponent(id)}/preview`),
+  stopPreview: (id: string) => post<Preview>(`/api/runs/${encodeURIComponent(id)}/preview/stop`),
+  usage: () => request<Usage>("/api/usage"),
 };
+
+/** The API, with the demo run (/runs/demo) answered from a recording in the browser. */
+export const api = withDemo(baseApi);

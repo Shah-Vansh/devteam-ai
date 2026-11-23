@@ -24,6 +24,11 @@ v1 has no authentication: it is a single-user tool bound to localhost (documente
 | GET | `/api/runs/{run_id}/approvals` | Pending and past approvals | 200 |
 | POST | `/api/approvals/{approval_id}` | Approve or reject | 200 |
 | POST | `/api/runs/{run_id}/cancel` | Cancel a run | 202 |
+| GET | `/api/runs/{run_id}/archive` | The generated project as a ZIP file | 200 |
+| GET | `/api/runs/{run_id}/preview` | State of "Try the API" (`starting`, `running` with URL and expiry, `stopped`) | 200 |
+| POST | `/api/runs/{run_id}/preview` | Start the generated app in an E2B sandbox for 10 minutes (only after tests passed) | 200, 409 |
+| POST | `/api/runs/{run_id}/preview/stop` | Stop it and delete the sandbox | 200 |
+| GET | `/api/usage` | LLM tokens used by this dashboard's runs in the last 24 hours, against `LLM_DAILY_TOKEN_LIMIT` | 200 |
 | GET | `/api/health` | Health and active executor | 200 |
 
 ## Examples

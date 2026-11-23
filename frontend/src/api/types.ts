@@ -172,6 +172,24 @@ export interface Health {
   llm_configured: boolean;
   llm_error: string | null;
   git_available: boolean;
+  preview_available?: boolean;
+}
+
+/** LLM tokens used by this dashboard's runs in the last day, against the configured
+ * daily allowance (an estimate: CLI and benchmark runs are not counted). */
+export interface Usage {
+  window_hours: number;
+  tokens_used: number;
+  daily_limit: number; // 0: not configured
+  tokens_left: number | null;
+  typical_run_tokens: number | null;
+}
+
+/** "Try the API": the generated app running in a sandbox for a few minutes. */
+export interface Preview {
+  status: "starting" | "running" | "stopped";
+  url: string | null;
+  expires_at: string | null;
 }
 
 export type Decision =

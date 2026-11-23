@@ -26,6 +26,7 @@ from app.mcp_clients.filesystem import FilesystemClient
 from app.mcp_clients.git import GitClient
 from app.mcp_servers.filesystem.server import build_server
 from app.mcp_servers.git.server import build_git_server
+from app.services.previews import PreviewManager
 from app.services.runtime import Runtime
 from app.workflow.graph import build_graph
 from app.workflow.state import WorkflowDeps
@@ -64,7 +65,7 @@ def make_settings(tmp_path, **values) -> Settings:
     )
 
 
-def runtime_factory(llm, executor, *, configured=True):
+def runtime_factory(llm, executor, *, configured=True, preview=None, daily_token_limit=0):
     @asynccontextmanager
     async def factory(settings: Settings):
         secret = new_secret()
@@ -96,6 +97,8 @@ def runtime_factory(llm, executor, *, configured=True):
                 executor_name=executor.name,
                 model="fake-model",
                 llm_error=None if configured else "LLM_API_KEY is not set in the root .env",
+                previews=PreviewManager(preview),
+                daily_token_limit=daily_token_limit,
             )
 
     return factory

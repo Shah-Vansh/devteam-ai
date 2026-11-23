@@ -39,6 +39,7 @@ flowchart LR
 | T10 | Network abuse by generated code | Internet switched off before pytest runs; verified live by a test that tries to reach pypi.org | 4 (built) |
 | T11 | Local API abuse by other sites | Bound to `127.0.0.1`; CORS limited to the frontend origin, GET/POST only; no authentication (single-user, documented); errors never return internals | 7 (built) |
 | T12 | Sandbox escape or provider compromise | Accepted risk; only generated code is sent; documented | — |
+| T15 | "Try the API" exposes generated code to the internet | Same sandbox rules as tests (no environment variables, allow-listed pinned packages, outbound internet off before the app starts); only for runs whose tests passed; random URL; the sandbox deletes itself after 10 minutes or on Stop; nothing runs on the host. The URL is not authenticated while it runs (documented) | after 10 |
 
 ## Security tests
 
@@ -81,3 +82,5 @@ contents; long LLM outputs are truncated.
   computed from findings, and static tools are independent of the model, so such text cannot
   force a pass while a high static finding exists (tested).
 - Package installation runs with internet on, before the network is cut.
+- A "Try the API" URL works for anyone who has it, for up to 10 minutes. It serves only the
+  generated app, which holds no secrets and has no outbound internet.

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink, Outlet, useOutletContext, useParams } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { Report, Run } from "../api/types";
 import { Icon } from "../components/icons";
@@ -7,6 +7,7 @@ import { ErrorBox, Loading, Stat, StatusBadge } from "../components/common";
 import { Pipeline } from "../components/Pipeline";
 import { useAsync } from "../hooks/useAsync";
 import { type RunEvent, useRunEvents } from "../hooks/useRunEvents";
+import { isDemo } from "../demo/demo";
 import { formatTokens, isFinished } from "../lib/agents";
 import { buildPipeline } from "../lib/pipeline";
 
@@ -23,9 +24,15 @@ export const useRunContext = () => useOutletContext<RunContext>();
 
 const REFRESH_ON = new Set(["step", "approval_required", "approval_decided", "finished"]);
 
+/** The API stores times in UTC without a zone ("2026-11-23T13:24:59"); a browser would
+ * read that as local time, so a live run's elapsed time was off by the UTC offset. */
+export function parseUtc(value: string): Date {
+  return new Date(/[zZ]|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`);
+}
+
 function duration(run: Run): string {
-  const end = run.finished_at ? new Date(run.finished_at) : new Date();
-  const seconds = Math.max(0, Math.round((end.getTime() - new Date(run.started_at).getTime()) / 1000));
+  const end = run.finished_at ? parseUtc(run.finished_at) : new Date();
+  const seconds = Math.max(0, Math.round((end.getTime() - parseUtc(run.started_at).getTime()) / 1000));
   return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }
 
@@ -40,6 +47,8 @@ export function RunLayout() {
     [run.data?.project_id],
   );
   const [cancelError, setCancelError] = useState<string>();
+  const [retrying, setRetrying] = useState(false);
+  const navigate = useNavigate();
 
   const reload = () => {
     run.reload();
@@ -52,6 +61,7 @@ export function RunLayout() {
   if (run.error && !run.data) return <ErrorBox error={run.error} />;
   if (!run.data) return <Loading what="Loading run" />;
   const current = run.data;
+  const demo = isDemo(current.id);
   const lastLog = [...events].reverse().find((e) => e.type === "log")?.data.message as
     | string
     | undefined;
@@ -62,6 +72,21 @@ export function RunLayout() {
     pendingKind: current.pending_approval?.kind,
     error: current.error,
   });
+
+  /** Start a new run of the same project (same requirement) and switch to it. */
+  async function retry() {
+    setCancelError(undefined);
+    setRetrying(true);
+    try {
+      const started = await api.startRun(current.project_id);
+      if (started.run_id === current.id) reload(); // the demo replays in place
+      else navigate(`/runs/${started.run_id}`);
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRetrying(false);
+    }
+  }
 
   async function cancel() {
     setCancelError(undefined);
@@ -85,13 +110,40 @@ export function RunLayout() {
           </h1>
           <StatusBadge status={current.status} />
           <span className="spacer" />
-          {!isFinished(current.status) && (
-            <button type="button" className="danger small" onClick={cancel}>
-              <Icon name="x" width={13} height={13} />
-              Cancel run
-            </button>
-          )}
+          <div className="run-actions">
+            {current.workspace && !demo && (
+              <a className="button small" href={api.archiveUrl(current.id)} download>
+                <Icon name="download" width={13} height={13} />
+                Download ZIP
+              </a>
+            )}
+            {isFinished(current.status) && (
+              <button type="button" className="small" onClick={retry} disabled={retrying}>
+                <Icon name="refresh" width={13} height={13} />
+                {retrying
+                  ? "Starting…"
+                  : demo
+                    ? "Replay demo"
+                    : current.status === "SUCCESS"
+                      ? "Run again"
+                      : "Retry"}
+              </button>
+            )}
+            {!isFinished(current.status) && !demo && (
+              <button type="button" className="danger small" onClick={cancel}>
+                <Icon name="x" width={13} height={13} />
+                Cancel run
+              </button>
+            )}
+          </div>
         </div>
+        {demo && (
+          <p className="demo-banner" role="note">
+            <Icon name="play" width={13} height={13} />
+            Demo: a real run recorded earlier, replayed in your browser. No API keys are used
+            and nothing is executed. Approve the two steps when they appear.
+          </p>
+        )}
         {project.data && <p className="run-requirement">❯ {project.data.requirement}</p>}
         {current.error && current.status !== "SUCCESS" && (
           <p className="run-error">{current.error}</p>

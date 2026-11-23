@@ -188,3 +188,24 @@ test("an unknown page says so", async ({ page }) => {
   await page.goto("/nowhere");
   await expect(page.getByText("Page not found.")).toBeVisible();
 });
+
+test("the demo replays a recorded run without any backend", async ({ page }) => {
+  // Every API call fails, as for someone who cloned the repository without keys.
+  await page.route(`${API}/api/**`, (route: Route) => route.abort());
+  await page.goto("/");
+  await page.getByRole("link", { name: /Watch a demo run/ }).click();
+  await expect(page).toHaveURL(/\/runs\/demo$/);
+  await expect(page.getByRole("note")).toContainText("replayed in your browser");
+
+  await page.getByRole("button", { name: "Run tests" }).click({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Commit", exact: true }).click({ timeout: 30_000 });
+  await expect(page.getByText(/Committed 35bda9da6c/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByLabel("Pipeline").getByLabel("Commit: passed", { exact: true })).toBeVisible();
+
+  await page.getByRole("link", { name: "Workspace" }).click();
+  await expect(page.getByLabel("Contents of app/main.py")).toBeVisible();
+  await page.getByRole("link", { name: "Report" }).click();
+  await expect(page.getByText("8/8 passed · e2b")).toBeVisible();
+  await page.getByRole("button", { name: "Replay demo" }).click();
+  await expect(page.locator(".run-title .badge")).toHaveText("running");
+});
