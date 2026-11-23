@@ -76,7 +76,7 @@ export function ReportPage() {
             <div className="big">
               <StatusBadge status={run.review_status} />
             </div>
-            <p className="muted mono" style={{ fontSize: 12 }}>
+            <p className="muted mono small">
               {counts.high} high · {counts.medium} med · {counts.low} low
             </p>
           </div>
@@ -92,7 +92,7 @@ export function ReportPage() {
             <div className="big">
               <StatusBadge status={run.test_status} />
             </div>
-            <p className="muted mono" style={{ fontSize: 12 }}>
+            <p className="muted mono small">
               {tests ? `${tests.passed}/${testTotal} passed · ${tests.executor}` : "not run"}
             </p>
           </div>
@@ -104,7 +104,7 @@ export function ReportPage() {
           <h2>Tests</h2>
           <span className="spacer" />
           {tests && (
-            <span className="muted mono" style={{ fontSize: 12 }}>
+            <span className="muted mono small">
               {(tests.duration_ms / 1000).toFixed(1)} s in {tests.executor}
             </span>
           )}
@@ -201,7 +201,7 @@ export function ReportPage() {
                     <i className="in" style={{ width: `${(u.input_tokens / maxTokens) * 100}%` }} />
                     <i className="out" style={{ width: `${(u.output_tokens / maxTokens) * 100}%` }} />
                   </div>
-                  <span className="mono dim" style={{ fontSize: 11 }}>
+                  <span className="mono dim small">
                     {formatTokens(u.input_tokens)} / {formatTokens(u.output_tokens)}
                   </span>
                 </td>
@@ -240,7 +240,7 @@ export function ReportPage() {
               <StatusBadge status={review.verdict} /> <span className="muted">round {review.round}</span>
             </p>
             <p className="muted">{review.summary}</p>
-            <p className="mono dim" style={{ marginTop: 10, fontSize: 12 }}>
+            <p className="mono dim small" style={{ marginTop: 10 }}>
               {counts.high} high · {counts.medium} medium · {counts.low} low
             </p>
           </>
@@ -251,7 +251,7 @@ export function ReportPage() {
         <div className="panel-head">
           <h2>Steps</h2>
           <span className="spacer" />
-          <span className="dim mono" style={{ fontSize: 12 }}>
+          <span className="dim mono small">
             {report.steps.length} steps
           </span>
         </div>

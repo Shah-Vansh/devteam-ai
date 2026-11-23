@@ -14,6 +14,26 @@
 | 9 Evaluation + hardening | Done (2026-11-20) |
 | 10 Packaging + portfolio | Done (2026-11-20) |
 
+## Fixes from live runs, and a light theme (2026-11-23)
+
+- A live run stopped because the provider rejected the Tester's whole test suite for one extra
+  key (`"required"`) three times. The client now validates the rejected answer
+  (`failed_generation`) with our own Pydantic model, which ignores unknown keys but checks every
+  real field and validator; only if that fails is the model sampled again. The next live run
+  passed 8/8 tests and committed.
+- The pipeline marked the fix loop as failed for every `FAILED_TESTS` run; it now reads the
+  step named in the stop reason (here `write_tests`) and shows the stages after it as skipped.
+- The log tagged "tests 1: PASSED (... failed 0, errors 0)" as an error; zero counts no longer
+  count, and a pass is shown in green.
+- The editor briefly showed the previous file's code under the new file's name while loading.
+- Light theme: colour tokens redefined for contrast on white, a switch in the top bar, the
+  system setting by default, the choice remembered; applied before the first paint.
+- Typography: Inter for the interface and JetBrains Mono for code, logs and identifiers, both
+  bundled with the dashboard (`@fontsource-variable`, SIL Open Font License) instead of relying
+  on fonts installed on the machine. Base size 15px, nothing below 12px, stronger contrast for
+  secondary text, tabular figures so numbers line up.
+- 334 backend tests, 63 frontend unit tests, 3 Playwright tests; all passing.
+
 ## Dashboard redesign (2026-11-23)
 
 - Dark, IDE-style design system (one colour per agent, CI-style status colours, system fonts).

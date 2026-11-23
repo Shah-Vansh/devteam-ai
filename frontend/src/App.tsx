@@ -1,6 +1,8 @@
 import { Link, NavLink, Route, Routes } from "react-router-dom";
 import { API_BASE_URL, api } from "./api/client";
+import { Icon } from "./components/icons";
 import { useAsync } from "./hooks/useAsync";
+import { useTheme } from "./hooks/useTheme";
 import { HomePage } from "./pages/HomePage";
 import { ReportPage } from "./pages/ReportPage";
 import { RunLayout } from "./pages/RunLayout";
@@ -29,6 +31,22 @@ function HealthBar() {
   );
 }
 
+export function ThemeSwitch() {
+  const [theme, toggle] = useTheme();
+  const next = theme === "dark" ? "light" : "dark";
+  return (
+    <button
+      type="button"
+      className="theme-switch"
+      onClick={toggle}
+      aria-label={`Switch to ${next} theme`}
+      title={`Switch to ${next} theme`}
+    >
+      <Icon name={theme === "dark" ? "sun" : "moon"} />
+    </button>
+  );
+}
+
 export function App() {
   return (
     <div className="app">
@@ -48,6 +66,7 @@ export function App() {
           </a>
         </nav>
         <HealthBar />
+        <ThemeSwitch />
       </header>
       <main>
         <Routes>

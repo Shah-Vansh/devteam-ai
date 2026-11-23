@@ -40,7 +40,7 @@ First end-to-end benchmark run (`gpt-oss-120b` on Groq, E2B sandbox), reported a
 - A run driven entirely from the dashboard (form, two approvals by click) passed 7/7 tests and
   committed.
 
-Tests: 330 backend tests, 50 frontend unit tests and 3 Playwright end-to-end tests, all offline.
+Tests: 334 backend tests, 63 frontend unit tests and 3 Playwright end-to-end tests, all offline.
 GitHub Actions runs them on every push on Linux, with Python 3.12 and 3.14.
 
 ## Quick start (Windows)
@@ -72,7 +72,8 @@ On Linux or macOS use `bash scripts/setup.sh`, then start `python -m app.api` in
 
 ## Using it
 
-**Dashboard** at http://localhost:5173, a dark, IDE-style interface:
+**Dashboard** at http://localhost:5173, an IDE-style interface with dark and light themes (it follows
+the system setting; the ☀/☾ button in the top bar switches and remembers your choice):
 
 - **Pipeline:** every run is shown as a CI pipeline (Plan → Develop → Review → Write tests →
   Approve run → Sandbox → Fix loop → Approve commit → Commit). The working stage pulses, the
@@ -124,7 +125,7 @@ from `backend/`.
 - **Tools:** two MCP servers (filesystem, Git) on the official Python MCP SDK, over stdio
 - **Execution:** E2B microVMs; static analysis with `ast`, ruff and bandit
 - **Backend:** FastAPI, Server-Sent Events, SQLAlchemy 2.0, Alembic, SQLite
-- **Frontend:** React 19, TypeScript, Vite, React Router
+- **Frontend:** React 19, TypeScript, Vite, React Router; Inter and JetBrains Mono, bundled
 - **Testing:** pytest, Vitest and Testing Library, Playwright, GitHub Actions
 
 ## Project layout

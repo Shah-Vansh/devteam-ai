@@ -1,6 +1,6 @@
 # Testing Strategy
 
-> Status: built. 330 backend tests, 50 frontend unit tests, 3 Playwright tests; all run in CI.
+> Status: built. 334 backend tests, 63 frontend unit tests, 3 Playwright tests; all run in CI.
 
 ## Principles
 
@@ -19,7 +19,7 @@
 | Executor | `StaticOnlyExecutor` always; `E2BExecutor` with a fake sandbox that records the order of steps (install, internet off, pytest, kill); live checks run by hand | pytest | 4 |
 | Workflow | Full graph with a fake LLM; every terminal state reachable; limits enforced; pause/resume | pytest | 5 |
 | API | Endpoints against a temporary SQLite database | pytest + FastAPI TestClient | 7 |
-| Frontend | Pipeline stage logic, syntax highlighter and file tree, agent-card logic, typed API client, approval panel, event-stream hook (fake `EventSource`), new-project form | Vitest + Testing Library (jsdom) | 8 (built; 50 tests after the redesign) |
+| Frontend | Pipeline stage logic, syntax highlighter and file tree, log line colouring, theme switch, agent-card logic, typed API client, approval panel, event-stream hook (fake `EventSource`), new-project form | Vitest + Testing Library (jsdom) | 8 (built; 63 tests after the redesign) |
 | End-to-end | Create project → run → two approvals (edited commit message) → report; refused start; unknown page. Mocked backend (`page.route`) | Playwright (installed Edge locally, Chromium in CI) | 9 (built) |
 | Security | One test per threat control; see the index in [SECURITY_DESIGN](SECURITY_DESIGN.md#security-tests) | pytest | 9 (built) |
 | Benchmark | The 10 benchmark requirements end to end, live (Groq, E2B, git) | `eval/run_benchmark.py` | 9 (by hand; needs keys and quota) |

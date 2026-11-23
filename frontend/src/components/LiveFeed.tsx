@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { RunEvent } from "../hooks/useRunEvents";
 import { agentFromLog } from "../lib/agents";
+import { logTone } from "../lib/logline";
 
 interface Line {
   tag: string;
@@ -21,8 +22,10 @@ function describe(event: RunEvent): Line {
       if (agent) {
         return { tag: agent, tone: agent, text: message.replace(/^\w+: /, "") };
       }
-      const failed = /fail|refused|error|no usable/i.test(message);
-      return { tag: failed ? "error" : "info", tone: failed ? "fail" : "", text: message };
+      const tone = logTone(message);
+      if (tone === "fail") return { tag: "error", tone: "fail", text: message };
+      if (tone === "pass") return { tag: "passed", tone: "done", text: message };
+      return { tag: "info", tone: "", text: message };
     }
     case "approval_required":
       return { tag: "gate", tone: "gate", text: `waiting for you: ${String(d.kind)} approval`, className: "gate" };

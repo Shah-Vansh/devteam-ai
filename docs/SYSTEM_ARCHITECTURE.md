@@ -133,9 +133,14 @@ Events (`GET /api/runs/{id}/events`). See [API_DESIGN](API_DESIGN.md) and
 
 ### Dashboard (Phase 8)
 
-Code: `frontend/` (React 19, TypeScript 7, Vite 8, React Router 7, plain CSS). Dark, IDE-style
-design; pipeline states come from `src/lib/pipeline.ts`, code colouring from `src/lib/highlight.ts`
-(a small tokenizer; React escapes every token, so file contents cannot inject markup).
+Code: `frontend/` (React 19, TypeScript 7, Vite 8, React Router 7, plain CSS). IDE-style design
+with dark and light themes: every colour is a token in `styles.css`, the light theme redefines
+them on `<html data-theme="light">`, and a small script in `index.html` picks the theme (saved
+choice, else the system setting) before the first paint. Fonts (Inter, JetBrains Mono) are
+bundled with the dashboard, so it looks the same on every machine and calls no font service.
+Pipeline states come from
+`src/lib/pipeline.ts`, code colouring from `src/lib/highlight.ts` (a small tokenizer; React
+escapes every token, so file contents cannot inject markup).
 
 | Screen | Route | Shows |
 |---|---|---|

@@ -182,7 +182,7 @@ function ProjectRow({ project }: { project: ProjectDetail }) {
     <tr>
       <td>
         <div className="project-name">{project.name}</div>
-        <div className="dim mono" style={{ fontSize: 11 }}>
+        <div className="dim mono small">
           {project.id}
         </div>
       </td>
