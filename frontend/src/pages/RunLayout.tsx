@@ -60,6 +60,7 @@ export function RunLayout() {
     steps: report.data?.steps ?? [],
     lastLog,
     pendingKind: current.pending_approval?.kind,
+    error: current.error,
   });
 
   async function cancel() {

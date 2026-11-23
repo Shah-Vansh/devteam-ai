@@ -1,5 +1,6 @@
 """Tests the retry and error logic without any network call, using a stand-in SDK object."""
 
+import json
 from types import SimpleNamespace
 
 import httpx
@@ -94,6 +95,42 @@ def test_provider_schema_rejection_is_retried(todo_plan_data):
     result = call(make_client(sdk))
     assert sdk.calls == 2
     assert result.attempts == 2
+
+
+def rejected_with(generation: str, *, wrapped: bool = True) -> openai.BadRequestError:
+    response = httpx.Response(400, request=httpx.Request("POST", "https://example.test"))
+    error = {
+        "code": "json_validate_failed",
+        "message": "Generated JSON does not match the expected schema. See 'failed_generation'",
+        "failed_generation": generation,
+    }
+    body = {"error": error} if wrapped else error
+    return openai.BadRequestError(error["message"], response=response, body=body)
+
+
+@pytest.mark.parametrize("wrapped", [True, False])
+def test_rejected_answer_with_a_stray_key_is_recovered(todo_plan_data, wrapped):
+    # Seen live: the provider rejected a whole answer for one extra "required" key.
+    generation = json.dumps({**todo_plan_data, "required": ["project_name"]})
+    sdk = StubSDK([rejected_with(generation, wrapped=wrapped)])
+    result = call(make_client(sdk))
+    assert sdk.calls == 1
+    assert result.data == ProjectPlan.model_validate(todo_plan_data)
+
+
+def test_rejected_answer_that_fails_our_validation_is_sampled_again(todo_plan_data):
+    plan = ProjectPlan.model_validate(todo_plan_data)
+    broken = rejected_with(json.dumps({"required": ["project_name"]}))
+    sdk = StubSDK([broken, ok_response(plan)])
+    result = call(make_client(sdk))
+    assert sdk.calls == 2
+    assert result.attempts == 2
+
+
+def test_rejected_answer_that_is_not_json_is_sampled_again(todo_plan_data):
+    plan = ProjectPlan.model_validate(todo_plan_data)
+    sdk = StubSDK([rejected_with("not json {"), ok_response(plan)])
+    assert call(make_client(sdk)).attempts == 2
 
 
 def test_other_bad_requests_are_not_retried():

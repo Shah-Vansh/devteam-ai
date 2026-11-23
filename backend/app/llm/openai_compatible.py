@@ -34,6 +34,29 @@ def is_schema_rejection(exc: openai.BadRequestError) -> bool:
     return "failed_generation" in str(exc)
 
 
+def failed_generation(exc: openai.BadRequestError) -> str | None:
+    """The rejected answer, which Groq returns with a schema rejection."""
+    body = exc.body if isinstance(exc.body, dict) else {}
+    error = body.get("error", body)
+    text = error.get("failed_generation") if isinstance(error, dict) else None
+    return text if isinstance(text, str) else None
+
+
+def recover(exc: openai.BadRequestError, schema: type[T]) -> T | None:
+    """Validate the rejected answer with our own model. The provider's check is stricter
+    than ours: one stray key (seen live: a schema-style `"required": [...]` next to the
+    real fields) rejects a whole test suite. Pydantic ignores unknown keys but still
+    checks every real field and validator, so an answer accepted here is as safe as a
+    normal one."""
+    text = failed_generation(exc)
+    if not text:
+        return None
+    try:
+        return schema.model_validate_json(text)
+    except ValidationError:
+        return None
+
+
 def is_truncation(exc: Exception) -> bool:
     """The answer hit the output-token limit. Asking again with the same budget would
     most likely be cut off again, so this is not retried."""
@@ -117,7 +140,19 @@ class OpenAICompatibleClient:
                 if not is_schema_rejection(exc):
                     raise LLMRequestError(f"{agent}: request rejected: {exc}") from exc
                 # Some providers (Groq) check the schema server-side and answer 400
-                # instead of returning invalid JSON. Same meaning: sample again.
+                # instead of returning invalid JSON. Use the answer if it passes our
+                # own validation; otherwise sample again.
+                recovered = recover(exc, schema)
+                if recovered is not None:
+                    self._log_failure(agent, attempt, "schema_rejected_recovered", exc)
+                    # A 400 carries no usage; the tokens of this call are not counted.
+                    usage = LLMUsage(
+                        model=self._model,
+                        input_tokens=0,
+                        output_tokens=0,
+                        latency_ms=int((time.perf_counter() - start) * 1000),
+                    )
+                    return StructuredResult(data=recovered, usage=usage, attempts=attempt)
                 last_error = exc
                 self._log_failure(agent, attempt, "schema_rejected_by_provider", exc)
                 continue

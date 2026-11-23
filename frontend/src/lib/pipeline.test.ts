@@ -73,6 +73,29 @@ describe("buildPipeline", () => {
     ).toBe("skipped");
   });
 
+  it("blames the step named in the stop reason, not the default stage", () => {
+    // Seen live: FAILED_TESTS because the Tester could not write tests at all.
+    const view = buildPipeline({
+      status: "FAILED_TESTS",
+      steps: steps("plan", "develop", "review", "revise", "review", "write_tests"),
+      error: "write_tests: no usable answer: tester: no valid TestSuite after 3 attempts",
+    });
+    const s = states(view);
+    expect(s.tests).toBe("failed");
+    expect(s.fix).toBe("skipped");
+    expect(s.approve_run).toBe("skipped");
+    expect(s.commit).toBe("skipped");
+  });
+
+  it("falls back to the default stage when the reason names no step", () => {
+    const view = buildPipeline({
+      status: "FAILED_TESTS",
+      steps: steps("plan", "run_tests", "triage"),
+      error: "1 failing test(s) after 2 fix round(s)",
+    });
+    expect(states(view).fix).toBe("failed");
+  });
+
   it("an error stops at the stage that was working", () => {
     const view = buildPipeline({
       status: "ERROR",

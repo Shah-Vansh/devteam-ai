@@ -65,7 +65,14 @@ const GATE_OF_APPROVAL: Record<ApprovalKind, StageId> = {
   commit: "approve_commit",
 };
 
-/** Which stage a terminal status points at, and what that stage shows. */
+/** A stop reason starts with the workflow node that gave up, e.g. "write_tests: no usable
+ * answer: ...". That node's stage is where the run failed. */
+export function stageFromReason(reason: string | null | undefined): StageId | undefined {
+  const node = reason?.match(/^([a-z_]+):/)?.[1];
+  return node ? stageOfNode(node) : undefined;
+}
+
+/** Which stage a terminal status points at by default, and what that stage shows. */
 const END_STAGE: Partial<Record<RunStatus, [StageId, StageState]>> = {
   FAILED_REVIEW: ["review", "failed"],
   FAILED_TESTS: ["fix", "failed"],
@@ -83,9 +90,18 @@ export interface PipelineInput {
   steps: Pick<Step, "agent">[];
   lastLog?: string;
   pendingKind?: ApprovalKind;
+  error?: string | null; // the run's stop reason
 }
 
-export function buildPipeline({ status, steps, lastLog, pendingKind }: PipelineInput): StageView[] {
+const FAILED_END = new Set<RunStatus>(["FAILED_REVIEW", "FAILED_TESTS", "ERROR", "CANCELLED"]);
+
+export function buildPipeline({
+  status,
+  steps,
+  lastLog,
+  pendingKind,
+  error,
+}: PipelineInput): StageView[] {
   const runs = new Map<StageId, number>();
   for (const step of steps) {
     const stage = stageOfNode(step.agent);
@@ -99,6 +115,8 @@ export function buildPipeline({ status, steps, lastLog, pendingKind }: PipelineI
   } else if (status === "RUNNING") {
     const fromLog = lastLog ? stageFromLog(lastLog) : undefined;
     current = [fromLog ?? lastStage ?? "plan", "active"];
+  } else if (FAILED_END.has(status) && stageFromReason(error)) {
+    current = [stageFromReason(error)!, "failed"];
   } else if (END_STAGE[status]) {
     current = END_STAGE[status];
   } else if (status === "ERROR" || status === "CANCELLED") {
@@ -107,7 +125,8 @@ export function buildPipeline({ status, steps, lastLog, pendingKind }: PipelineI
   }
 
   const currentIndex = current ? STAGES.findIndex((s) => s.id === current[0]) : -1;
-  const finished = status === "SUCCESS";
+  // A run that has ended never reaches the stages it did not get to.
+  const ended = status !== "RUNNING" && status !== "PAUSED";
 
   return STAGES.map((stage, index) => {
     const count = runs.get(stage.id) ?? 0;
@@ -116,9 +135,9 @@ export function buildPipeline({ status, steps, lastLog, pendingKind }: PipelineI
       state = current[1];
     } else if (stage.id === "fix" && count === 0) {
       // The fix loop only runs when tests fail; once the run moves past it, it was skipped.
-      const passedIt = finished || (currentIndex > index && currentIndex !== -1);
+      const passedIt = ended || (currentIndex > index && currentIndex !== -1);
       if (passedIt) state = "skipped";
-    } else if (finished && state === "pending") {
+    } else if (ended && state === "pending") {
       state = "skipped";
     }
     return { ...stage, state, runs: count };
