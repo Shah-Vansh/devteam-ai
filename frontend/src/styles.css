@@ -1,70 +1,77 @@
-/* DevTeam AI: an IDE-like design system, dark by default with a light theme. One accent colour per agent, CI-style
+/* DevTeam AI, design "Neon command center": deep navy with a violet-to-cyan glow, glass
+   panels and a subway-map pipeline; a matching light theme. One colour per agent, CI-style
    status colours, monospace where something is code, a log or an identifier. */
 
 :root {
   color-scheme: dark;
-  --bg: #0a0d14;
-  --bg-grid: rgba(124, 156, 255, 0.04);
-  --surface: #10151f;
-  --surface-2: #151b27;
-  --surface-3: #1b2331;
-  --border: #222b3b;
-  --border-strong: #2f3a4f;
-  --text: #e6ebf5;
-  --muted: #9aa5ba;
-  --dim: #737f98;
+  --bg: #070818;
+  --bg-glow-1: rgba(168, 85, 247, 0.24);
+  --bg-glow-2: rgba(34, 211, 238, 0.11);
+  --surface: rgba(17, 19, 48, 0.72);
+  --surface-2: rgba(255, 255, 255, 0.045);
+  --surface-3: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.17);
+  --text: #e8e9ff;
+  --muted: #a5a7d8;
+  --dim: #787ab2;
 
-  --accent: #7c9cff;
-  --accent-strong: #5b7cff;
-  --accent-soft: rgba(124, 156, 255, 0.14);
-  --cyan: #38d6f0;
+  --accent: #22d3ee;
+  --accent-strong: #06b6d4;
+  --accent-soft: rgba(34, 211, 238, 0.13);
+  --cyan: #22d3ee;
+  --violet: #a855f7;
+  --violet-soft: rgba(168, 85, 247, 0.16);
+  --gradient: linear-gradient(135deg, #a855f7, #22d3ee);
 
-  --good: #3ddc97;
-  --good-soft: rgba(61, 220, 151, 0.13);
-  --bad: #ff6b6b;
-  --bad-soft: rgba(255, 107, 107, 0.13);
-  --warn: #ffc24b;
-  --warn-soft: rgba(255, 194, 75, 0.14);
-  --info: #5fb4ff;
-  --info-soft: rgba(95, 180, 255, 0.14);
-  --neutral-soft: rgba(141, 152, 173, 0.14);
+  --good: #34d399;
+  --good-soft: rgba(52, 211, 153, 0.13);
+  --bad: #fb7185;
+  --bad-soft: rgba(251, 113, 133, 0.13);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.14);
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.14);
+  --neutral-soft: rgba(165, 167, 216, 0.12);
 
-  --planner: #b494ff;
-  --developer: #5fb4ff;
-  --reviewer: #ffc24b;
-  --tester: #3ddc97;
-  --system: #38d6f0;
-  --gate: #ffc24b;
+  --planner: #c084fc;
+  --developer: #60a5fa;
+  --reviewer: #fbbf24;
+  --tester: #34d399;
+  --system: #22d3ee;
+  --gate: #fbbf24;
 
   /* Bundled with the dashboard (src/main.tsx); the rest are fallbacks. */
   --font-ui: "Inter Variable", "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui,
     -apple-system, sans-serif;
   --font-mono: "JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas,
     ui-monospace, monospace;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
-  --glow: rgba(91, 124, 255, 0.12);
-  --on-accent: #0a0d14;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 10px 32px rgba(0, 0, 0, 0.38);
+  --glow: 0 0 16px rgba(34, 211, 238, 0.55);
+  --glow-violet: 0 0 18px rgba(168, 85, 247, 0.45);
+  --on-accent: #ffffff;
+  --node-bg: #0b0c24;
 
   /* chrome of the code-like panes */
-  --topbar-bg: rgba(10, 13, 20, 0.82);
-  --term-bg: #070a10;
-  --term-text: #c9d3e6;
-  --pane-bg: #0d121b;
-  --editor-bg: #0b0f17;
-  --line-number: #4f5a70;
-  --hover: rgba(255, 255, 255, 0.025);
+  --topbar-bg: rgba(7, 8, 24, 0.72);
+  --term-bg: rgba(3, 4, 16, 0.62);
+  --term-text: #cfd1f5;
+  --pane-bg: rgba(255, 255, 255, 0.025);
+  --editor-bg: rgba(4, 5, 18, 0.55);
+  --line-number: #50528a;
+  --hover: rgba(255, 255, 255, 0.035);
 
   /* syntax */
-  --syn-keyword: #c792ea;
-  --syn-builtin: #82aaff;
-  --syn-string: #c3e88d;
-  --syn-comment: #637089;
-  --syn-decorator: #ffcb6b;
-  --syn-number: #f78c6c;
-  --syn-function: #82d8ff;
-  --syn-class: #ffd58a;
+  --syn-keyword: #c084fc;
+  --syn-builtin: #93c5fd;
+  --syn-string: #5eead4;
+  --syn-comment: #6b6da8;
+  --syn-decorator: #fbbf24;
+  --syn-number: #f9a8d4;
+  --syn-function: #67e8f9;
+  --syn-class: #fcd34d;
 
   font-family: var(--font-ui);
   font-size: 15px;
@@ -78,63 +85,69 @@
   background: var(--bg);
 }
 
-/* Light theme: same structure, colours chosen for contrast on white (status and agent
-   colours are darker so text in them stays readable). Set on <html data-theme="light">. */
+/* Light theme of the same design: lavender-white, the same violet-to-cyan accents, darker
+   status and agent colours so text in them stays readable. Set on <html data-theme="light">. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f5f7fb;
-  --bg-grid: rgba(60, 80, 140, 0.05);
-  --surface: #ffffff;
-  --surface-2: #f6f8fc;
-  --surface-3: #edf1f8;
-  --border: #dfe4ee;
-  --border-strong: #c7cfdd;
-  --text: #161b26;
-  --muted: #5b667a;
-  --dim: #687387;
+  --bg: #f6f5ff;
+  --bg-glow-1: rgba(168, 85, 247, 0.14);
+  --bg-glow-2: rgba(34, 211, 238, 0.12);
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-2: rgba(99, 102, 241, 0.045);
+  --surface-3: rgba(99, 102, 241, 0.09);
+  --border: rgba(76, 70, 160, 0.14);
+  --border-strong: rgba(76, 70, 160, 0.26);
+  --text: #17163a;
+  --muted: #4f5185;
+  --dim: #66689b;
 
-  --accent: #4a63e0;
-  --accent-strong: #3a52cc;
-  --accent-soft: rgba(74, 99, 224, 0.1);
-  --cyan: #0a8aa3;
+  --accent: #0891b2;
+  --accent-strong: #0e7490;
+  --accent-soft: rgba(8, 145, 178, 0.1);
+  --cyan: #0891b2;
+  --violet: #7c3aed;
+  --violet-soft: rgba(124, 58, 237, 0.1);
+  --gradient: linear-gradient(135deg, #7c3aed, #0891b2);
 
-  --good: #0d8a57;
-  --good-soft: rgba(13, 138, 87, 0.1);
-  --bad: #c9302c;
-  --bad-soft: rgba(201, 48, 44, 0.09);
-  --warn: #a86a00;
-  --warn-soft: rgba(214, 145, 0, 0.13);
-  --info: #1f6fd1;
-  --info-soft: rgba(31, 111, 209, 0.1);
-  --neutral-soft: rgba(91, 102, 122, 0.1);
+  --good: #047857;
+  --good-soft: rgba(4, 120, 87, 0.1);
+  --bad: #be123c;
+  --bad-soft: rgba(190, 18, 60, 0.08);
+  --warn: #a35200;
+  --warn-soft: rgba(217, 119, 6, 0.12);
+  --info: #1d4ed8;
+  --info-soft: rgba(29, 78, 216, 0.09);
+  --neutral-soft: rgba(79, 81, 133, 0.09);
 
-  --planner: #7347d6;
-  --developer: #1f6fd1;
-  --reviewer: #a86a00;
-  --tester: #0d8a57;
-  --system: #0a8aa3;
-  --gate: #a86a00;
+  --planner: #7c3aed;
+  --developer: #1d4ed8;
+  --reviewer: #a35200;
+  --tester: #047857;
+  --system: #0e7490;
+  --gate: #a35200;
 
-  --shadow: 0 1px 2px rgba(22, 27, 38, 0.05), 0 6px 20px rgba(22, 27, 38, 0.06);
-  --glow: rgba(74, 99, 224, 0.08);
+  --shadow: 0 1px 2px rgba(40, 30, 110, 0.05), 0 8px 26px rgba(40, 30, 110, 0.08);
+  --glow: 0 0 14px rgba(8, 145, 178, 0.35);
+  --glow-violet: 0 0 16px rgba(124, 58, 237, 0.28);
   --on-accent: #ffffff;
+  --node-bg: #ffffff;
 
-  --topbar-bg: rgba(255, 255, 255, 0.86);
-  --term-bg: #fbfcfe;
-  --term-text: #2a3142;
-  --pane-bg: #f6f8fc;
+  --topbar-bg: rgba(255, 255, 255, 0.72);
+  --term-bg: #fbfaff;
+  --term-text: #2a2950;
+  --pane-bg: rgba(99, 102, 241, 0.035);
   --editor-bg: #ffffff;
-  --line-number: #a3acbd;
-  --hover: rgba(22, 27, 38, 0.035);
+  --line-number: #a5a6cc;
+  --hover: rgba(76, 70, 160, 0.05);
 
-  --syn-keyword: #8a3fd1;
-  --syn-builtin: #0b5cad;
-  --syn-string: #1a7f37;
-  --syn-comment: #7a8496;
-  --syn-decorator: #9a5b00;
-  --syn-number: #c2410c;
-  --syn-function: #1d4ed8;
-  --syn-class: #9a5b00;
+  --syn-keyword: #7c3aed;
+  --syn-builtin: #1d4ed8;
+  --syn-string: #047857;
+  --syn-comment: #8486b3;
+  --syn-decorator: #a35200;
+  --syn-number: #be185d;
+  --syn-function: #0e7490;
+  --syn-class: #92400e;
 }
 
 * {
@@ -145,9 +158,8 @@ body {
   margin: 0;
   min-height: 100%;
   background:
-    linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0 / 32px 32px,
-    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0 / 32px 32px,
-    radial-gradient(1200px 600px at 80% -10%, var(--glow), transparent 60%),
+    radial-gradient(1100px 620px at 88% -12%, var(--bg-glow-1), transparent 62%),
+    radial-gradient(900px 560px at -8% 108%, var(--bg-glow-2), transparent 60%),
     var(--bg);
   background-attachment: fixed;
 }
@@ -251,8 +263,8 @@ p {
   font-size: 13px;
   font-weight: 700;
   color: var(--on-accent);
-  background: linear-gradient(135deg, var(--accent), var(--cyan));
-  box-shadow: 0 0 18px rgba(124, 156, 255, 0.35);
+  background: var(--gradient);
+  box-shadow: var(--glow-violet);
 }
 .brand small {
   font-weight: 500;
@@ -317,7 +329,7 @@ p {
 }
 .health.bad {
   color: var(--bad);
-  border-color: rgba(255, 107, 107, 0.4);
+  border-color: color-mix(in srgb, var(--bad) 40%, transparent);
 }
 main {
   max-width: 1320px;
@@ -333,6 +345,8 @@ main {
   padding: 18px;
   box-shadow: var(--shadow);
   min-width: 0;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 .panel-head {
   display: flex;
@@ -389,14 +403,16 @@ button:disabled {
 }
 button.primary,
 .button.primary {
-  background: linear-gradient(180deg, var(--accent), var(--accent-strong));
-  border-color: var(--accent-strong);
+  background: var(--gradient);
+  border-color: transparent;
   color: #fff;
-  box-shadow: 0 4px 16px rgba(91, 124, 255, 0.3);
+  box-shadow: var(--glow-violet);
 }
 button.primary:hover:not(:disabled),
 .button.primary:hover {
-  background: linear-gradient(180deg, #8eaaff, var(--accent));
+  background: var(--gradient);
+  filter: brightness(1.08);
+  box-shadow: var(--glow);
 }
 button.good {
   background: linear-gradient(180deg, #4be3a2, #2bc282);
@@ -406,7 +422,7 @@ button.good {
 button.danger {
   background: transparent;
   color: var(--bad);
-  border-color: rgba(255, 107, 107, 0.45);
+  border-color: color-mix(in srgb, var(--bad) 45%, transparent);
 }
 button.danger:hover:not(:disabled) {
   background: var(--bad-soft);
@@ -549,7 +565,7 @@ select:disabled {
 }
 .dot.on {
   background: var(--good);
-  box-shadow: 0 0 8px var(--good);
+  box-shadow: 0 0 10px var(--good);
 }
 @keyframes pulse {
   50% {
@@ -569,19 +585,19 @@ select:disabled {
 @keyframes glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(124, 156, 255, 0.45);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(124, 156, 255, 0);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent);
   }
 }
 @keyframes glow-warn {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(255, 194, 75, 0.45);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--warn) 45%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(255, 194, 75, 0);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--warn) 0%, transparent);
   }
 }
 
@@ -600,7 +616,7 @@ select:disabled {
 }
 .hero-copy h1 em {
   font-style: normal;
-  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  background: var(--gradient);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -626,7 +642,7 @@ select:disabled {
   background: var(--surface);
 }
 .flow-strip span.chip.gate {
-  border-color: rgba(255, 194, 75, 0.45);
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
   color: var(--warn);
 }
 .composer {
@@ -722,7 +738,7 @@ select:disabled {
   border-bottom: none;
 }
 .run-table tr:hover td {
-  background: rgba(124, 156, 255, 0.03);
+  background: color-mix(in srgb, var(--accent) 3%, transparent);
 }
 .project-name {
   font-weight: 650;
@@ -837,13 +853,15 @@ select:disabled {
 }
 .tabs a.active {
   color: var(--text);
-  border-bottom-color: var(--accent);
+  border-image: var(--gradient) 1;
+  border-bottom-width: 2px;
+  border-bottom-style: solid;
 }
 
-/* ---------------- pipeline ---------------- */
+/* ---------------- pipeline: a subway map ---------------- */
 .pipeline {
   margin-top: 16px;
-  padding: 18px 16px;
+  padding: 20px 18px 16px;
   overflow-x: auto;
 }
 .pipeline ol {
@@ -851,48 +869,54 @@ select:disabled {
   margin: 0;
   padding: 0;
   display: flex;
-  align-items: stretch;
-  min-width: 1040px; /* below this the pipeline scrolls instead of squashing */
+  align-items: flex-start;
+  min-width: 960px; /* below this the map scrolls instead of squashing */
 }
 .stage {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   flex: 1 1 0;
   min-width: 0;
 }
+.stage:first-child {
+  flex: 0 1 auto;
+}
 .stage-node {
-  flex: 1 1 0;
-  min-width: 96px;
-  align-self: stretch;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  width: 104px;
+  flex: none;
+  padding: 0 4px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
   position: relative;
 }
-.stage-node.kind-gate {
-  border-style: dashed;
-  border-color: rgba(255, 194, 75, 0.35);
-}
 .stage-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--surface-3);
+  border: 2px solid var(--border-strong);
+  background: var(--node-bg);
   color: var(--dim);
+  margin-bottom: 6px;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s;
 }
 .stage-icon svg {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
+}
+.stage-node.kind-gate .stage-icon {
+  border-style: dashed;
 }
 .stage-label {
   font-weight: 650;
   font-size: 13.5px;
+  line-height: 1.25;
 }
 .stage-actor {
   font-size: 12px;
@@ -901,14 +925,16 @@ select:disabled {
 }
 .stage-runs {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: -6px;
+  left: calc(50% + 12px);
   font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--muted);
-  background: var(--surface-3);
-  border-radius: 6px;
-  padding: 1px 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--on-accent);
+  background: var(--violet);
+  border-radius: 999px;
+  padding: 0 6px;
+  line-height: 18px;
 }
 .stage-state {
   font-family: var(--font-mono);
@@ -916,82 +942,102 @@ select:disabled {
   color: var(--dim);
   text-transform: lowercase;
 }
-.stage-node.done {
-  border-color: rgba(61, 220, 151, 0.35);
-}
 .stage-node.done .stage-icon {
-  background: var(--good-soft);
-  color: var(--good);
+  border-color: var(--violet);
+  background: var(--violet);
+  color: #fff;
+  box-shadow: var(--glow-violet);
 }
 .stage-node.done .stage-state {
   color: var(--good);
 }
-.stage-node.active {
-  border-color: var(--accent);
-  background: linear-gradient(180deg, rgba(124, 156, 255, 0.12), var(--surface-2));
-  animation: glow 1.8s ease-in-out infinite;
-}
 .stage-node.active .stage-icon {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-.stage-node.active .stage-state {
-  color: var(--accent);
+  border-color: var(--cyan);
+  color: var(--cyan);
+  animation: halo 1.8s ease-in-out infinite;
 }
 .stage-node.active .stage-icon svg {
   animation: spin 2.4s linear infinite;
 }
-.stage-node.waiting {
-  border-color: var(--warn);
-  border-style: solid;
-  background: linear-gradient(180deg, rgba(255, 194, 75, 0.12), var(--surface-2));
-  animation: glow-warn 1.8s ease-in-out infinite;
+.stage-node.active .stage-state,
+.stage-node.active .stage-label {
+  color: var(--cyan);
 }
 .stage-node.waiting .stage-icon {
-  background: var(--warn-soft);
+  border-color: var(--warn);
+  border-style: dashed;
   color: var(--warn);
+  animation: halo-warn 1.8s ease-in-out infinite;
 }
-.stage-node.waiting .stage-state {
+.stage-node.waiting .stage-state,
+.stage-node.waiting .stage-label {
   color: var(--warn);
-}
-.stage-node.failed {
-  border-color: var(--bad);
 }
 .stage-node.failed .stage-icon {
-  background: var(--bad-soft);
-  color: var(--bad);
+  border-color: var(--bad);
+  background: var(--bad);
+  color: #fff;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--bad) 55%, transparent);
 }
-.stage-node.failed .stage-state {
+.stage-node.failed .stage-state,
+.stage-node.failed .stage-label {
   color: var(--bad);
 }
 .stage-node.skipped {
-  opacity: 0.45;
+  opacity: 0.4;
 }
-.stage-node.pending {
-  opacity: 0.7;
+.stage-node.pending .stage-label {
+  color: var(--muted);
 }
+/* The track between two stops, at the height of the circles' centres. */
 .edge {
-  width: 18px;
-  height: 2px;
+  flex: 1 1 auto;
+  min-width: 14px;
+  height: 3px;
+  margin: 19px -30px 0;
+  border-radius: 3px;
   background: var(--border-strong);
-  flex: none;
+  position: relative;
+  z-index: 0;
+}
+.stage-node {
+  z-index: 1;
 }
 .edge.done {
-  background: rgba(61, 220, 151, 0.55);
+  background: var(--violet);
 }
 .edge.active {
-  height: 2px;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--accent) 0 8px,
-    transparent 8px 12px
-  );
-  background-size: 24px 2px;
-  animation: flow 0.7s linear infinite;
+  background: linear-gradient(90deg, var(--violet), var(--cyan), var(--violet), var(--cyan));
+  background-size: 200% 100%;
+  animation: track 1.4s linear infinite;
+  box-shadow: var(--glow);
+}
+@keyframes halo {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--cyan) 55%, transparent), var(--glow);
+  }
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--cyan) 0%, transparent), var(--glow);
+  }
+}
+@keyframes halo-warn {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--warn) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--warn) 0%, transparent);
+  }
+}
+@keyframes track {
+  to {
+    background-position: -200% 0;
+  }
 }
 
 /* ---------------- live layout ---------------- */
-.live {
+.live-layout {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
   gap: 16px;
@@ -1054,7 +1100,7 @@ select:disabled {
   grid-row: span 3;
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
   font-family: var(--font-mono);
@@ -1225,11 +1271,11 @@ select:disabled {
 /* ---------------- approval gate ---------------- */
 .gate-card {
   border-radius: var(--radius);
-  border: 1px solid rgba(255, 194, 75, 0.55);
+  border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent);
   background:
-    linear-gradient(135deg, rgba(255, 194, 75, 0.09), transparent 55%),
+    linear-gradient(135deg, color-mix(in srgb, var(--warn) 9%, transparent), transparent 55%),
     var(--surface);
-  box-shadow: 0 0 0 4px rgba(255, 194, 75, 0.06), var(--shadow);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--warn) 6%, transparent), var(--shadow);
   padding: 18px 20px;
 }
 .gate-head {
@@ -1301,8 +1347,8 @@ select:disabled {
   gap: 14px;
   padding: 14px 18px;
   border-radius: var(--radius);
-  border: 1px solid rgba(61, 220, 151, 0.45);
-  background: linear-gradient(90deg, rgba(61, 220, 151, 0.12), var(--surface));
+  border: 1px solid color-mix(in srgb, var(--good) 45%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--good) 12%, transparent), var(--surface));
 }
 .success-card .gate-icon {
   color: var(--good);
@@ -1504,15 +1550,15 @@ select:disabled {
   background: var(--hover);
 }
 .line.flagged {
-  background: rgba(255, 194, 75, 0.08);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
   box-shadow: inset 2px 0 0 var(--warn);
 }
 .line.flagged.high {
-  background: rgba(255, 107, 107, 0.08);
+  background: color-mix(in srgb, var(--bad) 8%, transparent);
   box-shadow: inset 2px 0 0 var(--bad);
 }
 .line.focus {
-  background: rgba(124, 156, 255, 0.14);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 .ln {
   display: inline-block;
@@ -1683,7 +1729,7 @@ select:disabled {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--surface-2);
+  background: var(--node-bg); /* solid: the glass panels are see-through */
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
@@ -1758,7 +1804,7 @@ table.data tr.total td {
   height: 100%;
 }
 .bar .in {
-  background: var(--accent);
+  background: var(--violet);
 }
 .bar .out {
   background: var(--cyan);
@@ -1852,13 +1898,13 @@ pre.code.small {
   max-height: 220px;
 }
 .error-box {
-  border-color: rgba(255, 107, 107, 0.45);
+  border-color: color-mix(in srgb, var(--bad) 45%, transparent);
   background: var(--bad-soft);
 }
 
 /* ---------------- responsive ---------------- */
 @media (max-width: 1100px) {
-  .live {
+  .live-layout {
     grid-template-columns: minmax(0, 1fr);
   }
   .agents {

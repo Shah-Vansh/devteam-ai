@@ -14,6 +14,19 @@
 | 9 Evaluation + hardening | Done (2026-11-20) |
 | 10 Packaging + portfolio | Done (2026-11-20) |
 
+## Design "Neon command center" (2026-11-26)
+
+- Chosen from four full-page previews (minimal, retro terminal, warm editorial, neon). Deep navy
+  with a violet-to-cyan glow, glass panels, gradient buttons and headings, round agent avatars;
+  a matching light theme (lavender white, darker status colours for contrast).
+- The pipeline is a subway map: one stop per stage, violet when passed, a glowing cyan stop for
+  the working stage, a dashed amber stop at a gate, red when it failed; the track is drawn only
+  as far as the run got.
+- Found while checking it: the Live page's layout class `live` was also the class of running
+  and waiting status badges, so those badges took the page's grid layout; renamed to
+  `live-layout`. Gauge centres were painted with the (now see-through) panel colour.
+- 355 backend tests, 73 frontend unit tests, 4 Playwright tests; all passing.
+
 ## Benchmark complete, and what the hard cases taught (2026-11-25)
 
 - All 10 cases measured: 5/10 `SUCCESS` (easy 3/3, medium 2/3, hard 0/4). b04 re-run: 6/7 after

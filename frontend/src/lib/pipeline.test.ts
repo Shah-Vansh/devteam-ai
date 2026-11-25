@@ -110,6 +110,17 @@ describe("buildPipeline", () => {
     expect(edgeState(view, 1)).toBe("active");
     expect(edgeState(view, 2)).toBe("pending");
   });
+
+  it("does not draw the travelled track into stages the run skipped", () => {
+    const view = buildPipeline({
+      status: "FAILED_TESTS",
+      steps: steps("plan", "develop", "review", "write_tests"),
+      error: "write_tests: no usable answer",
+    });
+    const tests = view.findIndex((s) => s.id === "tests");
+    expect(edgeState(view, tests)).toBe("done"); // into the failed stage: travelled
+    expect(edgeState(view, tests + 1)).toBe("pending"); // into a skipped stage: not
+  });
 });
 
 it.each([

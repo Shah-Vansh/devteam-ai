@@ -133,7 +133,7 @@ Events (`GET /api/runs/{id}/events`). See [API_DESIGN](API_DESIGN.md) and
 
 ### Dashboard (Phase 8)
 
-Code: `frontend/` (React 19, TypeScript 7, Vite 8, React Router 7, plain CSS). IDE-style design
+Code: `frontend/` (React 19, TypeScript 7, Vite 8, React Router 7, plain CSS). Design "Neon command center"
 with dark and light themes: every colour is a token in `styles.css`, the light theme redefines
 them on `<html data-theme="light">`, and a small script in `index.html` picks the theme (saved
 choice, else the system setting) before the first paint. Fonts (Inter, JetBrains Mono) are

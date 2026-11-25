@@ -20,7 +20,7 @@ export function RunLivePage() {
   }
 
   return (
-    <div className="live">
+    <div className="live-layout">
       <aside aria-label="Agents">
         <AgentCards cards={cards} />
       </aside>

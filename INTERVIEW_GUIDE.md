@@ -56,7 +56,7 @@ next failure can be diagnosed from the record.
 
 **How is the system tested?**
 355 backend tests (unit, agents with a fake LLM, real MCP servers over stdio, the full graph, the
-API with real migrations, security), 72 frontend unit tests, and Playwright tests that drive the
+API with real migrations, security), 73 frontend unit tests, and Playwright tests that drive the
 dashboard in a browser against a mocked API. GitHub Actions runs all of it on Linux with no
 secrets.
 

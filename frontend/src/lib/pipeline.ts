@@ -149,5 +149,7 @@ export function edgeState(stages: StageView[], index: number): "done" | "active"
   const target = stages[index];
   if (!target) return "pending";
   if (target.state === "active" || target.state === "waiting") return "active";
-  return target.state === "pending" ? "pending" : "done";
+  // A stage the run never reached (pending, or skipped after it ended) is not on the
+  // travelled track.
+  return target.state === "pending" || target.state === "skipped" ? "pending" : "done";
 }

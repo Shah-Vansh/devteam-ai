@@ -218,7 +218,7 @@ export function ReportPage() {
         </table>
         <div className="legend">
           <span>
-            <i style={{ background: "var(--accent)" }} />
+            <i style={{ background: "var(--violet)" }} />
             input
           </span>
           <span>

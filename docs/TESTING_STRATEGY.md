@@ -1,6 +1,6 @@
 # Testing Strategy
 
-> Status: built. 355 backend tests, 72 frontend unit tests, 4 Playwright tests; all run in CI.
+> Status: built. 355 backend tests, 73 frontend unit tests, 4 Playwright tests; all run in CI.
 
 ## Principles
 
