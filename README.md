@@ -44,7 +44,7 @@ First end-to-end benchmark run (`gpt-oss-120b` on Groq, E2B sandbox), reported a
 - A run driven entirely from the dashboard (form, two approvals by click) passed 7/7 tests and
   committed.
 
-Tests: 355 backend tests, 73 frontend unit tests and 4 Playwright end-to-end tests, all offline.
+Tests: 355 backend tests, 75 frontend unit tests and 4 Playwright end-to-end tests, all offline.
 GitHub Actions runs them on every push on Linux, with Python 3.12 and 3.14.
 
 ## Try it without any keys

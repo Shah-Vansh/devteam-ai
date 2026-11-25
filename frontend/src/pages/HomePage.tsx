@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { ProjectDetail } from "../api/types";
 import { ErrorBox, Loading, StatusBadge } from "../components/common";
+import { Architecture, InputOutput } from "../components/HeroExplainer";
 import { Icon } from "../components/icons";
 import { useAsync } from "../hooks/useAsync";
 import { describeUsage } from "../lib/usage";
@@ -171,8 +172,12 @@ export function HomePage() {
               </Fragment>
             ))}
           </div>
+          <Architecture />
         </div>
-        <NewProjectForm onStarted={(runId) => navigate(`/runs/${runId}`)} />
+        <div className="hero-side">
+          <NewProjectForm onStarted={(runId) => navigate(`/runs/${runId}`)} />
+          <InputOutput />
+        </div>
       </div>
 
       <section className="panel projects" aria-labelledby="projects-title">

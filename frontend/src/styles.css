@@ -2077,3 +2077,250 @@ pre.code.small {
   align-self: flex-start;
   margin: 4px 0 18px;
 }
+
+/* ---------------- home: what you get, and how it works ---------------- */
+/* Left: the story and how it works; right: the form and what it produces. */
+.hero-side {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+/* Both columns end at the same height whatever the form shows (the token estimate appears
+   only with a backend): the architecture panel takes up the rest, its diagram centred. */
+.hero {
+  align-items: stretch;
+}
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.hero-copy .arch {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+.hero-copy .arch .arch-top {
+  margin-top: auto;
+}
+.hero-copy .arch figcaption {
+  margin-top: auto;
+  padding-top: 12px;
+}
+.explain {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.explain-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+.io-input {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.io-prompt {
+  color: var(--cyan);
+}
+.io-arrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  font-size: 12px;
+  color: var(--dim);
+  font-family: var(--font-mono);
+}
+.io-arrow span {
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gradient);
+  opacity: 0.6;
+}
+.io-output {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 10px;
+}
+.io-tree {
+  list-style: none;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--pane-bg);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+.io-tree li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.io-tree li svg {
+  color: var(--violet);
+}
+.io-tree li.nested {
+  padding-left: 18px;
+  color: var(--muted);
+}
+.io-code-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--editor-bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.io-code {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  white-space: pre;
+  overflow-x: auto;
+  flex: 1;
+}
+.io-result {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--good);
+  background: var(--good-soft);
+}
+.arch-row {
+  display: grid;
+  gap: 8px;
+  align-items: stretch;
+}
+.arch-top {
+  grid-template-columns: minmax(0, 1fr) 52px minmax(0, 1fr);
+}
+.arch-tools {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.arch-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 7px 8px;
+  text-align: center;
+  display: grid;
+  gap: 1px;
+}
+.arch-box b {
+  font-size: 13px;
+  font-weight: 650;
+}
+.arch-box > span {
+  font-size: 12px;
+  color: var(--dim);
+  font-family: var(--font-mono);
+}
+.arch-link {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  color: var(--cyan);
+  font-size: 16px;
+  line-height: 1;
+}
+.arch-link small {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.arch-down {
+  width: 2px;
+  height: 12px;
+  margin: 0 auto;
+  background: var(--gradient);
+}
+.arch-split {
+  width: 66%;
+  height: 12px;
+  background: none;
+  border: 2px solid transparent;
+  border-top: 0;
+  border-image: var(--gradient) 1;
+  border-bottom-width: 0;
+  position: relative;
+}
+.arch-split::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--cyan);
+}
+.arch-core {
+  border-color: color-mix(in srgb, var(--violet) 45%, var(--border));
+  background: var(--violet-soft);
+}
+.arch-agents {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--dim);
+}
+.arch-agents i {
+  font-style: normal;
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--agent);
+  background: color-mix(in srgb, var(--agent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--agent) 40%, transparent);
+}
+.arch-sandbox {
+  border-color: color-mix(in srgb, var(--cyan) 45%, var(--border));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--cyan) 18%, transparent);
+}
+.arch figcaption {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+@media (max-width: 560px) {
+  .io-output {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .arch-tools {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.hero-copy .arch .arch-down {
+  height: auto;
+  flex: 1 1 12px;
+  min-height: 12px;
+  max-height: 36px;
+}

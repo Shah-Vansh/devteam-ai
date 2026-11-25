@@ -14,6 +14,17 @@
 | 9 Evaluation + hardening | Done (2026-11-20) |
 | 10 Packaging + portfolio | Done (2026-11-20) |
 
+## Projects page: what you get, and how it works (2026-11-26)
+
+- The start page had empty space beside the form. Chosen from eight sketched options: an
+  "under the hood" architecture diagram under the pipeline chips (browser, API, LangGraph
+  agents, the two MCP servers, the E2B sandbox; "agents only read") and a "you type → you get"
+  panel under the form (the requirement, the generated file tree, a code snippet, "8/8 tests
+  passed · committed").
+- Both columns now end at the same height whatever the form shows: the diagram's panel takes
+  up the remaining space and spreads its rows. On a phone everything stacks.
+- 355 backend tests, 75 frontend unit tests, 4 Playwright tests; all passing.
+
 ## Design "Neon command center" (2026-11-26)
 
 - Chosen from four full-page previews (minimal, retro terminal, warm editorial, neon). Deep navy

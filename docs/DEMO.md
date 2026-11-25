@@ -68,7 +68,7 @@ The panel **Tests passed. Commit these files?** lists the files and an editable 
 - Every run ends in a defined state; loops are bounded by counters and an LLM-call budget.
 - Pauses are LangGraph interrupts with a SQLite checkpointer: a paused run survives an API
   restart.
-- 355 backend tests, 73 frontend tests and 4 Playwright tests run in CI on every push; security
+- 355 backend tests, 75 frontend tests and 4 Playwright tests run in CI on every push; security
   tests map to each threat in the threat model.
 - Honest numbers: in the first benchmark, all easy requirements succeeded; the harder ones and the
   limits are documented in `docs/EVALUATION.md`.
