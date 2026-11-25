@@ -33,15 +33,18 @@ passed review never counts as passed tests.
 
 First end-to-end benchmark run (`gpt-oss-120b` on Groq, E2B sandbox), reported as measured:
 
-- 5 of the 7 cases run so far reached `SUCCESS`: all 3 easy and 2 of 3 medium requirements, with
-  every generated test passing in those five (45/45). One of them needed the fix loop: a wrong
+- All 10 benchmark cases measured: **5/10 reached `SUCCESS`** (easy 3/3, medium 2/3, hard 0/4),
+  with every generated test passing in those five (45/45). One needed the fix loop: a wrong
   test was diagnosed, fixed and passed on the re-run.
-- One medium case failed its tests; the first hard case hit the free tier's daily token limit.
-  Cases 8–10 are not measured yet. Details: [docs/EVALUATION.md](docs/EVALUATION.md).
+- The failures were analysed from the saved runs: two hard cases failed review mostly on false
+  alarms caused by how large projects were summarised for the Reviewer, and two hit the free
+  tier's 8,000 tokens-per-minute limit with a single request. Both are fixed and the fix for the
+  first was checked live (10 high findings became 1, a real bug); the hard cases are not re-run
+  yet. Details: [docs/EVALUATION.md](docs/EVALUATION.md).
 - A run driven entirely from the dashboard (form, two approvals by click) passed 7/7 tests and
   committed.
 
-Tests: 352 backend tests, 72 frontend unit tests and 4 Playwright end-to-end tests, all offline.
+Tests: 355 backend tests, 72 frontend unit tests and 4 Playwright end-to-end tests, all offline.
 GitHub Actions runs them on every push on Linux, with Python 3.12 and 3.14.
 
 ## Try it without any keys

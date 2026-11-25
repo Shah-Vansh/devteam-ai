@@ -31,7 +31,9 @@ class DeveloperInputError(ValueError):
 
 def plan_block(plan: ProjectPlan) -> str:
     # Open questions were answered or turned into assumptions; they would only distract.
-    return "<plan>\n" + plan.model_dump_json(indent=2, exclude={"open_questions"}) + "\n</plan>"
+    # Compact JSON: the plan is in every request, and indentation cost 800-1,000 characters
+    # of a hard project's plan (found live, benchmark b08 and b09; see REVIEW_CHAR_BUDGET).
+    return "<plan>\n" + plan.model_dump_json(exclude={"open_questions"}) + "\n</plan>"
 
 
 def findings_block(findings: Sequence[Finding]) -> str:

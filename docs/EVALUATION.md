@@ -1,6 +1,6 @@
 # Evaluation
 
-> Status: end-to-end runner built in Phase 9 (`eval/run_benchmark.py`); 7 of 10 cases measured (below).
+> Status: all 10 benchmark cases measured (below): 5/10 `SUCCESS`; easy 3/3, medium 2/3, hard 0/4.
 
 ## Why
 
@@ -37,61 +37,76 @@ Ten fixed requirements, increasing in difficulty:
 `eval/results/<date>-<model>.json` plus a summary table in this file, e.g. "7/10 benchmark
 requirements reach SUCCESS with model X". Results are reported as measured, including failures.
 
-## End-to-end benchmark (2026-11-20 and 2026-11-23)
+## End-to-end benchmark (2026-11-20 to 2026-11-25): all 10 cases
 
 Each case runs the real workflow: Groq `gpt-oss-120b` (reasoning effort low) for the agents,
 E2B for the tests, a real local commit. Pauses are approved automatically. Code:
 `backend/app/evaluation/benchmark.py`, runner `eval/run_benchmark.py`, raw results
-`eval/results/2026-11-20-e2e-openai_gpt-oss-120b.json`. b01–b04 ran on 2026-11-20, b05–b07 on
-2026-11-23 after the fixes listed below.
+`eval/results/2026-11-20-e2e-openai_gpt-oss-120b.json`. The free tier allows 200,000 tokens per
+day and 8,000 per minute, so the cases ran over three days; fixes made between runs are listed
+below with the case that exposed them.
 
 | Case | Difficulty | Status | Review rounds | Fix rounds | Tests | LLM calls | Tokens | Time |
 |---|---|---|---|---|---|---|---|---|
 | b01 health check | easy | SUCCESS | 0 | 0 | 5/5 | 4 | 8,046 | 21 s |
 | b02 todo CRUD | easy | SUCCESS | 0 | 0 | 10/10 | 5 | 16,167 | 118 s |
 | b03 notes with SQLite | easy | SUCCESS | 0 | 0 | 11/11 | 5 | 19,674 | 121 s |
-| b04 URL shortener | medium | FAILED_TESTS | 1 | 0 | 3/7 | 7 | 24,362 | 224 s |
+| b04 URL shortener | medium | FAILED_TESTS | 0 | 2 | 6/7 | 9 | 29,953 | 226 s |
 | b05 inventory | medium | SUCCESS | 0 | 0 | 13/13 | 5 | 19,637 | 99 s |
 | b06 bookmarks with tags | medium | SUCCESS (after a fix round) | 1 | 1 | 6/6 | 9 | 31,700 | 207 s |
-| b07 tasks with JWT login | hard | ERROR (daily token quota) | 0 | 0 | — | 4 | 15,387 | 117 s |
-| b08–b10 | hard | not run yet (daily token quota) | | | | | | |
+| b07 tasks with JWT login | hard | FAILED_REVIEW | 2 | 0 | — | 13 | 66,699 | 448 s |
+| b08 library loans | hard | ERROR (request over 8,000 tokens/minute) | 0 | 0 | — | 3 | 12,081 | 68 s |
+| b09 expense tracker | hard | ERROR (request over 8,000 tokens/minute) | 0 | 0 | — | 4 | 15,976 | 75 s |
+| b10 event booking | hard | FAILED_REVIEW | 2 | 0 | — | 11 | 42,851 | 276 s |
 
-**Headline (as measured): 5 of the 7 cases run reached `SUCCESS`: all 3 easy and 2 of 3 medium,
-with 45/45 generated tests passing in those five.** b06 shows the full loop working: its first
-test run failed, triage blamed the test (`bad_test`), the Tester fixed it, and the re-run
-passed. The free tier's 200,000 tokens per day ran out during b07, so b07–b10 are not measured.
+**Headline (as measured): 5 of 10 reached `SUCCESS`: easy 3/3, medium 2/3, hard 0/4.** In the
+five successes every generated test passed (45/45). b06 and b04 show the fix loop working
+(triage blamed the tests, the Tester fixed them, the re-run improved); b04 still had one
+failing test after the two allowed rounds. No hard case succeeded on the free tier.
 
-What the failures and errors showed, and what changed:
+### What each failure showed, and what changed
 
-- **b04 (2026-11-20):** the generated tests failed (3/7) and triage did not name the failing
-  tests in a form the check accepted, twice, so the run stopped before any fix round. Bare
-  function names such as `test_redirect_success` are now accepted, and the error lists the
-  names the model gave. b04 has not been re-run since.
-- **b05, first two attempts (2026-11-23):** the triage request was larger than the free tier's
-  8,000 tokens per minute (8,497, then 9,223 tokens), so Groq refused it outright (HTTP 413);
-  waiting would not have helped. Two changes, measured on the saved state of that run (about
-  9,200 tokens before, about 7,000 after):
-  - triage and test fixes now receive only the test files that contain the failing tests (plus
-    `conftest.py`), not every test file;
-  - failure messages share a fixed budget, keep their last lines (where pytest prints the
-    error), and identical errors are shown once (all 8 failures there were the same database
-    error).
+- **b04, first run (2026-11-20):** triage did not name the failing tests in a form the check
+  accepted. Bare function names are now accepted. Re-run on 2026-11-25: 5/7 → 6/7 → 6/7 over
+  two fix rounds, ending as `FAILED_TESTS`: the loop is bounded and says so.
+- **b05, first two attempts:** one triage request was larger than 8,000 tokens per minute
+  (HTTP 413, 8,497 and 9,223 tokens). Triage and test fixes now get only the failing test files,
+  and failure messages share a budget with identical errors shown once (about 9,200 → 7,000
+  tokens on that run's saved state). Then 13/13.
+- **b07 and b10 (`FAILED_REVIEW`): mostly false alarms from the Reviewer, found by reading the
+  saved review reports against the generated files.** Large projects are reviewed in parts;
+  files outside a part are shown as outlines. The outlines wrote every function body as `: ...`
+  and dropped module-level calls, so complete files looked unfinished: the Reviewer reported
+  "all task routes are placeholders" and "main.py never includes the routers", while `tasks.py`
+  had five working routes and `main.py` included both routers and created the tables. With 10
+  such high findings, two revisions could not satisfy it. Changes:
+  - outlines label omitted bodies (`# body not shown: 6 lines`), say when a value is shortened,
+    and keep module-level calls such as `app.include_router(...)`;
+  - a finding about a file the Reviewer saw only as an outline is capped at medium and marked
+    "(seen in an outline)". Every file is still reviewed in full in its own part, where a real
+    problem keeps its severity.
 
-  The third attempt passed 13/13 with no fix round needed.
-- **b07:** stopped by the provider's daily token limit, recorded as `ERROR` with the reason.
+  Checked live by reviewing b07's saved code again with the model: 1 high finding instead of
+  10, and that one is real (`Field(..., env="JWT_SECRET_KEY")` makes the settings required and
+  Pydantic v2 ignores `env=`, so the app fails at start-up without `APP_JWT_SECRET_KEY`). b07 and
+  b10 have not been re-run end to end since.
+- **b08 and b09 (`ERROR`):** a review request came to 8,056 and 8,089 tokens, just over the
+  per-minute limit. The Reviewer now has its own smaller full-text budget (5,500 characters,
+  numbered lines cost more tokens), and the plan is sent as compact JSON in every request
+  (800–1,000 characters less for these plans). Estimated on their saved state, calibrated on
+  the provider's own counts: about 7,500 tokens. Not yet re-run.
+- **Runner:** a 413 was treated like a quota error and stopped the benchmark, so b09 and b10 did
+  not run at first. Only rate limits (HTTP 429) now stop it or are redone by `--resume`.
 
-A larger project can still exceed 8,000 tokens in one request; that is a limit of the free
-tier, not of the design (a paid tier raises it).
+### Next measurement
 
-To finish the benchmark when the daily quota has reset (about 24 hours after it ran out):
+Re-run the hard cases with the fixes above when the daily quota allows (15,000–67,000 tokens
+per hard case so far, so spread them over two days):
 
 ```powershell
 cd backend
-..\.venv\Scripts\python.exe ..\eval\run_benchmark.py --reasoning-effort low --resume ..\eval\results\2026-11-20-e2e-openai_gpt-oss-120b.json
+..\.venv\Scripts\python.exe ..\eval\run_benchmark.py --only b07,b08,b09,b10 --reasoning-effort low
 ```
-
-`--resume` keeps finished cases and redoes those stopped by provider errors (here b07), then
-runs b08–b10.
 
 ## Results so far
 

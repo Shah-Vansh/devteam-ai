@@ -29,6 +29,12 @@ from app.schemas.review import Finding, ReviewOutput, ReviewReport
 
 PROMPT_FILE = Path(__file__).parent / "prompts" / "reviewer_system.md"
 
+# Full source per review request, in characters. Smaller than the Developer's budget: the
+# Reviewer gets numbered lines, the static findings and a large output schema. Found live
+# (benchmark b08, b09): with the shared 8,000-character budget, review requests of hard
+# projects came to 8,056 and 8,089 tokens, just over the free tier's 8,000 tokens per minute.
+REVIEW_CHAR_BUDGET = 5500
+
 
 @dataclass
 class ReviewResult:
@@ -68,13 +74,16 @@ class Reviewer:
         summaries: list[str] = []
         usages: list[LLMUsage] = []
         # Large projects are reviewed in parts; each part also sees outlines of the rest.
-        for batch in size_batches(sorted(files), files):
+        for batch in size_batches(sorted(files), files, REVIEW_CHAR_BUDGET):
             call = await anyio.to_thread.run_sync(
                 partial(self._ask_model, plan, files, batch, static)
             )
             usages.extend(call.usages)
             summaries.append(call.data.summary.strip())
-            findings += [Finding(source="reviewer", **f.model_dump()) for f in call.data.findings]
+            findings += [
+                second_hand(Finding(source="reviewer", **f.model_dump()), batch)
+                for f in call.data.findings
+            ]
 
         summary = " ".join(s for s in summaries if s)
         if static.tools_failed:
@@ -128,6 +137,19 @@ class Reviewer:
             agent=self.agent_name,
             check=check,
         )
+
+
+def second_hand(finding: Finding, batch: Sequence[str]) -> Finding:
+    """A finding about a file this part saw only as an outline cannot block the run.
+
+    Found live (benchmark b07, b10): from outlines, the model reported complete files as
+    stubs, with high severity, and the run ended as FAILED_REVIEW. Every file is reviewed in
+    full in its own part, where a real problem is still reported with its real severity."""
+    if finding.file in batch or finding.severity != "high":
+        return finding
+    return finding.model_copy(
+        update={"severity": "medium", "message": f"(seen in an outline) {finding.message}"}
+    )
 
 
 def sort_findings(findings: Sequence[Finding]) -> list[Finding]:

@@ -14,6 +14,22 @@
 | 9 Evaluation + hardening | Done (2026-11-20) |
 | 10 Packaging + portfolio | Done (2026-11-20) |
 
+## Benchmark complete, and what the hard cases taught (2026-11-25)
+
+- All 10 cases measured: 5/10 `SUCCESS` (easy 3/3, medium 2/3, hard 0/4). b04 re-run: 6/7 after
+  two fix rounds, `FAILED_TESTS`.
+- b07 and b10 failed review mostly on false alarms. Outlines of files outside a review part
+  wrote bodies as `: ...` and dropped module-level calls, so complete files looked like stubs
+  ("main.py never includes the routers" while it did). Outlines now label omitted bodies and
+  shortened values and keep module-level calls; findings about files seen only in outline are
+  capped at medium. Live re-review of b07's code: 10 high findings became 1, a real bug.
+- b08 and b09: one review request was 8,056 and 8,089 tokens (limit 8,000 per minute). The
+  Reviewer got its own 5,500-character full-text budget and the plan is compact JSON
+  (estimated about 7,500 tokens now).
+- The benchmark runner stopped on that 413 as if it were a quota error; only HTTP 429 stops it
+  now.
+- 355 backend tests, 72 frontend unit tests, 4 Playwright tests; all passing.
+
 ## Demo mode, Try the API, and more benchmark cases (2026-11-23)
 
 - **Demo mode** (`/runs/demo`, "Watch a demo run"): a real successful run recorded with

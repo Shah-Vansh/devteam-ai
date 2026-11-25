@@ -24,7 +24,13 @@ from app.agents.reviewer import Reviewer
 from app.agents.tester import Tester
 from app.core.config import get_settings
 from app.core.logging import configure_logging
-from app.evaluation.benchmark import CaseResult, aggregate, markdown_table, run_case
+from app.evaluation.benchmark import (
+    CaseResult,
+    aggregate,
+    is_rate_limited,
+    markdown_table,
+    run_case,
+)
 from app.execution.factory import build_executor
 from app.gitops.repo import CommitAuthor
 from app.llm.factory import build_llm_client
@@ -63,12 +69,8 @@ async def main(args: argparse.Namespace) -> int:
     results: list[CaseResult] = []
     if args.resume and out.exists():
         saved = json.loads(out.read_text(encoding="utf-8"))
-        # Keep finished cases; redo those that stopped on provider errors (quota).
-        results = [
-            CaseResult(**c)
-            for c in saved["cases"]
-            if not c["stop_reason"].startswith("LLM provider")
-        ]
+        # Keep finished cases; redo those stopped by rate limits (they clear with time).
+        results = [CaseResult(**c) for c in saved["cases"] if not is_rate_limited(c["stop_reason"])]
     done = {r.id for r in results}
     meta = {
         "model": model,
@@ -115,7 +117,7 @@ async def main(args: argparse.Namespace) -> int:
                 + (f" ({result.stop_reason[:120]})" if result.stop_reason else ""),
                 flush=True,
             )
-            if not args.keep_going and result.stop_reason.startswith("LLM provider"):
+            if not args.keep_going and is_rate_limited(result.stop_reason):
                 print("provider quota reached; resume later with --resume", flush=True)
                 break
             await asyncio.sleep(args.pause)  # never block the event loop (MCP runs on it)

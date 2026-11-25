@@ -57,6 +57,16 @@ def redact(text: str) -> str:
     return _ACCOUNT_IDS.sub("org_<redacted>", text)
 
 
+def is_rate_limited(stop_reason: str) -> bool:
+    """True when a case stopped on the provider's rate limits (HTTP 429: tokens per minute or
+    per day), which clear with time, so the case is worth running again later.
+
+    Found live: a single request larger than the per-minute limit is answered with HTTP 413.
+    That fails again every time, so it is a result, not a reason to stop the benchmark (it
+    had stopped b09 and b10 from running)."""
+    return stop_reason.startswith("LLM provider") and "Error code: 429" in stop_reason
+
+
 def summarise(case: dict[str, str], run_id: str, step: Step, seconds: float) -> CaseResult:
     state = step.state
     last = state["test_rounds"][-1]["result"] if state.get("test_rounds") else None

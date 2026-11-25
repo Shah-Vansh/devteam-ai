@@ -91,7 +91,9 @@ async def test_large_projects_are_reviewed_in_parts_with_outlines(
 
     # Budget so small that every file is its own part.
     monkeypatch.setattr(
-        reviewer_module, "size_batches", lambda paths, files: common.size_batches(paths, files, 1)
+        reviewer_module,
+        "size_batches",
+        lambda paths, files, *_: common.size_batches(paths, files, 1),
     )
     responses = [
         review_output(summary="Main ok."),  # app/main.py
@@ -120,7 +122,9 @@ async def test_finding_about_an_outlined_file_is_kept(server, todo_plan, todo_fi
     from app.agents import common
 
     monkeypatch.setattr(
-        reviewer_module, "size_batches", lambda paths, files: common.size_batches(paths, files, 1)
+        reviewer_module,
+        "size_batches",
+        lambda paths, files, *_: common.size_batches(paths, files, 1),
     )
     # The part reviewing app/main.py reports a problem it saw in the outline of store.py.
     responses = [review_output(finding(file="app/store.py", severity="medium"))]
@@ -131,3 +135,35 @@ async def test_finding_about_an_outlined_file_is_kept(server, todo_plan, todo_fi
         result = await Reviewer(llm).review(workspace=WS, plan=todo_plan, fs=fs.read_only())
     assert len(llm.requests) == 4  # no corrective retry
     assert [f.file for f in result.report.findings if f.source == "reviewer"] == ["app/store.py"]
+
+
+async def test_high_finding_about_an_outlined_file_cannot_block(
+    server, todo_plan, todo_files, monkeypatch
+):
+    # Found live: the model called complete files "stubs" from their outlines, with high
+    # severity, and the run failed review. Such findings are kept, but at most medium.
+    import app.agents.reviewer as reviewer_module
+    from app.agents import common
+
+    monkeypatch.setattr(
+        reviewer_module,
+        "size_batches",
+        lambda paths, files, *_: common.size_batches(paths, files, 1),
+    )
+    first_part = sorted(todo_files)[0]
+    other = next(p for p in sorted(todo_files) if p != first_part)
+    responses = [
+        review_output(
+            finding(file=other, severity="high", message="All handlers are placeholders"),
+            finding(file=first_part, severity="high", message="Real bug in the file shown"),
+        )
+    ]
+    responses += [review_output() for _ in range(len(todo_files) - 1)]
+    llm = FakeLLMClient(responses)
+    async with FilesystemClient(server) as fs:
+        await write(fs, todo_files)
+        result = await Reviewer(llm).review(workspace=WS, plan=todo_plan, fs=fs.read_only())
+    found = {f.file: f for f in result.report.findings if f.source == "reviewer"}
+    assert found[other].severity == "medium"
+    assert found[other].message.startswith("(seen in an outline)")
+    assert found[first_part].severity == "high"  # a file shown in full keeps its severity

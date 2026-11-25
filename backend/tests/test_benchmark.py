@@ -93,3 +93,13 @@ def test_account_ids_are_removed_from_stop_reasons():
         redact(reason)
         == "Rate limit reached for model x in organization `org_<redacted>` service tier"
     )
+
+
+def test_only_rate_limits_count_as_try_again_later():
+    from app.evaluation.benchmark import is_rate_limited
+
+    per_day = "LLM provider request failed: tester: provider request failed: Error code: 429 - "
+    too_large = "LLM provider request failed: reviewer: provider request failed: Error code: 413 - "
+    assert is_rate_limited(per_day + "Rate limit reached ... tokens per day (TPD)")
+    assert not is_rate_limited(too_large + "Request too large ... tokens per minute (TPM)")
+    assert not is_rate_limited("high-severity findings remain after 2 revision(s)")
